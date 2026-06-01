@@ -29,23 +29,23 @@ void Board::removeUnit(Unit* unit)
     m_unitToPosition.remove(unit);
 }
 
-Unit* Board::getUnitAt(const QPoint& pos) const
+Unit* Board::getUnitAt(const QPoint& pos) const // 获取指定位置的单位
 {
     const int idx = indexOf(pos);
     return idx < 0 ? nullptr : m_cells[idx];
 }
 
-bool Board::hasUnitAt(const QPoint& pos) const
+bool Board::hasUnitAt(const QPoint& pos) const // 检查指定位置是否有单位
 {
     return getUnitAt(pos) != nullptr;
 }
 
-bool Board::isValidPosition(const QPoint& pos) const
+bool Board::isValidPosition(const QPoint& pos) const // 网格位置是否合法（在棋盘范围内）
 {
     return pos.x() >= 0 && pos.x() < COLS && pos.y() >= 0 && pos.y() < ROWS;
 }
 
-bool Board::isPlayerHalf(const QPoint& pos) const
+bool Board::isPlayerHalf(const QPoint& pos) const // 是否为玩家半区
 {
     return pos.y() >= ROWS / 2;
 }
@@ -56,7 +56,7 @@ void Board::clear()
     m_unitToPosition.clear();
 }
 
-int Board::indexOf(const QPoint& pos) const
+int Board::indexOf(const QPoint& pos) const // 将二维坐标转换为一维索引
 {
     if (!isValidPosition(pos)) {
         return -1;

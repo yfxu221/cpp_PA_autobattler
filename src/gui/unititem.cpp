@@ -20,7 +20,7 @@ QRectF UnitItem::boundingRect() const
     return QRectF(-42, -42, 84, 84);
 }
 
-void UnitItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*)
+void UnitItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*) // 绘制单位图形项，根据是否成功加载精灵图片来决定绘制内容，如果加载成功则绘制精灵图片，否则绘制一个简单的六边形徽章，并在中心显示单位名称的首字母
 {
     painter->setRenderHint(QPainter::Antialiasing);
 
@@ -58,7 +58,7 @@ void UnitItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget
     }
 }
 
-void UnitItem::ensureSpriteLoaded() const
+void UnitItem::ensureSpriteLoaded() const // 确保单位图形项的精灵图片已加载，如果尚未尝试加载过，则根据单位类型构建相对路径并尝试加载图片，加载成功后将其缩放到适当大小
 {
     if (m_spriteTried) {
         return;
@@ -94,7 +94,7 @@ void UnitItem::ensureSpriteLoaded() const
     m_sprite = pix.scaled(64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 }
 
-QString UnitItem::spriteRelativePathForUnit() const
+QString UnitItem::spriteRelativePathForUnit() const // 根据单位类型返回对应的精灵图片的相对路径，如果单位类型未知则返回空字符串
 {
     if (!m_unit) {
         return QString();
@@ -119,12 +119,12 @@ int UnitItem::unitId() const
     return m_unit ? m_unit->id() : -1;
 }
 
-void UnitItem::setGridPos(const QPoint& gridPos)
+void UnitItem::setGridPos(const QPoint& gridPos) // 设置单位图形项的网格坐标
 {
     m_gridPos = gridPos;
 }
 
-void UnitItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
+void UnitItem::mousePressEvent(QGraphicsSceneMouseEvent* event) // 处理鼠标按下事件，如果按下的是左键，则开始拖拽单位图形项，并发出dragStarted信号，传递单位ID、源网格坐标和场景坐标
 {
     if (event->button() != Qt::LeftButton) {
         QGraphicsObject::mousePressEvent(event);

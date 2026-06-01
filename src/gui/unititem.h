@@ -7,7 +7,7 @@
 
 class Unit;
 
-class UnitItem : public QGraphicsObject
+class UnitItem : public QGraphicsObject // 代表一个单位的图形项
 {
     Q_OBJECT
 
@@ -17,7 +17,7 @@ public:
     QRectF boundingRect() const override;
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget) override;
 
-    Unit* unit() const { return m_unit; }
+    Unit* unit() const { return m_unit; } // 获取对应的单位对象
     int unitId() const;
 
     void setGridPos(const QPoint& gridPos);
@@ -37,9 +37,9 @@ private:
     void ensureSpriteLoaded() const;
     QString spriteRelativePathForUnit() const;
 
-    Unit* m_unit;
-    QPoint m_gridPos;
-    bool m_dragging;
+    Unit* m_unit; // 指向对应的单位对象
+    QPoint m_gridPos; // 单位在棋盘上的网格坐标，(row, col)，由Game类在syncFromBoard()中设置
+    bool m_dragging; // 是否正在拖动单位图形项，初始值为false，在mousePressEvent中设置为true，在mouseReleaseEvent中设置为false
     mutable QPixmap m_sprite;
     mutable bool m_spriteTried;
 };

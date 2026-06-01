@@ -55,7 +55,7 @@ void GridItem::setBaseColor(const QColor& color)
     update();
 }
 
-void GridItem::setHoverActive(bool active)
+void GridItem::setHoverActive(bool active) // 设置格子的悬停高亮状态
 {
     if (m_hoverActive == active) {
         return;
@@ -64,7 +64,7 @@ void GridItem::setHoverActive(bool active)
     update();
 }
 
-void GridItem::setDropActive(bool active)
+void GridItem::setDropActive(bool active) // 设置格子的放置高亮状态
 {
     if (m_dropActive == active) {
         return;

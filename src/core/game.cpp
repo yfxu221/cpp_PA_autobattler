@@ -6,9 +6,9 @@
 #include <QtMath>
 
 namespace {
-constexpr qreal kZGrid = 0.0;
-constexpr qreal kZUnit = 1.0;
-constexpr qreal kZDraggingUnit = 2.0;
+constexpr qreal kZGrid = 0.0; // 网格z坐标
+constexpr qreal kZUnit = 1.0; // 单位z坐标
+constexpr qreal kZDraggingUnit = 2.0; // 拖拽单位z坐标
 }
 
 Game::Game(QObject* parent)
@@ -61,7 +61,7 @@ void Game::handleDragStarted(int unitId, const QPoint& sourceGrid, const QPointF
 
     UnitItem* item = findUnitItem(unitId);
     if (item) {
-        item->setZValue(kZDraggingUnit);
+        item->setZValue(kZDraggingUnit); // 提升正在拖动的单位的Z值，使其显示在其他元素之上
     }
 }
 
@@ -132,7 +132,7 @@ Unit* Game::findUnitById(int unitId) const
     return nullptr;
 }
 
-GridItem* Game::findGridItem(const QPoint& gridPos) const
+GridItem* Game::findGridItem(const QPoint& gridPos) const // 根据网格坐标查找对应的GridItem
 {
     for (GridItem* item : m_gridItems) {
         if (item && item->gridPos() == gridPos) {
@@ -142,16 +142,16 @@ GridItem* Game::findGridItem(const QPoint& gridPos) const
     return nullptr;
 }
 
-UnitItem* Game::findUnitItem(int unitId) const
+UnitItem* Game::findUnitItem(int unitId) const // 根据单位ID查找对应的UnitItem，使用哈希表进行快速查找
 {
-    auto it = m_unitItemById.find(unitId);
+    auto it = m_unitItemById.find(unitId); //没找到返回m_unitItemById.end()
     if (it == m_unitItemById.end()) {
         return nullptr;
     }
-    return it->second;
+    return it->second; //取值
 }
 
-void Game::clearGridHighlights()
+void Game::clearGridHighlights() // 清除所有格子的高亮状态
 {
     for (GridItem* item : m_gridItems) {
         if (!item) {
@@ -195,8 +195,9 @@ void Game::applyDrop(int unitId, const QPoint& target)
     m_board.addUnit(unit, target);
 }
 
-void Game::buildScene()
-{
+void Game::buildScene() // 根据当前棋盘状态构建图形场景，创建GridItem和UnitItem，并设置它们的位置和层级关系
+{   
+    // 清除现有场景中的所有项和状态
     m_scene->clear();
     m_gridItems.clear();
     m_unitItems.clear();
@@ -211,7 +212,7 @@ void Game::buildScene()
             gridItem->setZValue(kZGrid);
             gridItem->setBaseColor(row < Board::ROWS / 2 ? QColor(80, 60, 60) : QColor(60, 60, 80));
 
-            m_scene->addItem(gridItem);
+            m_scene->addItem(gridItem); // 把格子项添加到场景中
             m_gridItems.push_back(gridItem);
 
             const QRectF bounds = gridItem->boundingRect();
@@ -223,7 +224,7 @@ void Game::buildScene()
     for (Unit* unit : m_units) {
         UnitItem* unitItem = new UnitItem(unit);
         unitItem->setZValue(kZUnit);
-        m_scene->addItem(unitItem);
+        m_scene->addItem(unitItem); // 把单位项添加到场景中
         m_unitItems.push_back(unitItem);
         m_unitItemById[unit->id()] = unitItem;
 
@@ -238,7 +239,7 @@ void Game::buildScene()
     m_scene->setSceneRect(totalBounds.adjusted(-40, -40, 40, 40));
 }
 
-void Game::syncFromBoard()
+void Game::syncFromBoard() // 根据棋盘状态更新所有单位图形项的位置和可见性
 {
     clearGridHighlights();
 
@@ -260,7 +261,7 @@ void Game::syncFromBoard()
     }
 }
 
-QPointF Game::gridToWorld(int row, int col) const
+QPointF Game::gridToWorld(int row, int col) const // 将网格坐标转换为世界坐标
 {
     const qreal colSpacing = m_radius * qSqrt(3.0);
     const qreal xOffset = (row % 2 == 0) ? colSpacing * 0.5 : 0.0;
@@ -269,7 +270,7 @@ QPointF Game::gridToWorld(int row, int col) const
     return QPointF(x, y);
 }
 
-QPoint Game::worldToGrid(const QPointF& world) const
+QPoint Game::worldToGrid(const QPointF& world) const // 将鼠标坐标转换为网格坐标
 {
     QPoint best(-1, -1);
     qreal bestDist = 1e18;
@@ -290,7 +291,7 @@ QPoint Game::worldToGrid(const QPointF& world) const
     return best;
 }
 
-QPolygonF Game::cellHexPolygon(int row, int col) const
+QPolygonF Game::cellHexPolygon(int row, int col) const // 计算指定网格单元的六边形多边形，用于绘制网格单元的形状
 {
     const QPointF center = gridToWorld(row, col);
     QPolygonF poly;

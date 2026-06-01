@@ -6,7 +6,7 @@
 
 class QGraphicsSceneHoverEvent;
 
-class GridItem : public QGraphicsObject
+class GridItem : public QGraphicsObject // 代表棋盘上的一个格子
 {
     Q_OBJECT
 

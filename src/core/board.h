@@ -28,8 +28,8 @@ public:
 private:
     int indexOf(const QPoint& pos) const;
 
-    QVector<Unit*> m_cells;
-    QHash<Unit*, QPoint> m_unitToPosition;
+    QVector<Unit*> m_cells; // 格子 -> 单位的映射，nullptr表示无单位
+    QHash<Unit*, QPoint> m_unitToPosition; // 单位 -> 格子位置的映射，方便快速查找单位位置
 };
 
 #endif // BOARD_H
