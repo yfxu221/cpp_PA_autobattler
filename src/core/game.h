@@ -47,7 +47,7 @@ private:
     QPoint worldToGrid(const QPointF& world) const;
     QPolygonF cellHexPolygon(int row, int col) const;
 
-    Board m_board; // 棋盘对象，管理单位的状态和位置
+    BoardANDBench m_board; // 棋盘和备战区对象，管理单位的状态和位置
     QList<Unit*> m_units; // 存储所有单位的指针，方便访问和管理
 
     QGraphicsScene* m_scene;
@@ -59,10 +59,13 @@ private:
     QPoint m_sourceGrid; // 拖动开始时的格子位置
     std::unordered_map<int, UnitItem*> m_unitItemById; // 单位ID -> UnitItem的映射，方便快速查找单位对应的图形项
 
-    int m_rows;
-    int m_cols;
+    int m_board_rows;
+    int m_board_cols;
+    int m_bench_rows;
+    int m_bench_cols;
     qreal m_radius; // 浮点数半径，用于计算六边形格子的大小
     qreal m_rowSpacing; // 行间距，通常为半径的1.5倍，但可以根据需要调整以获得更紧凑或更宽松的布局
+    qreal m_BBSpacing; // 棋盘和备战区之间的间距，单位为像素，根据需要调整以获得合适的视觉效果
 };
 
 #endif // CORE_GAME_H

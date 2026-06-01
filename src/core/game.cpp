@@ -17,10 +17,13 @@ Game::Game(QObject* parent)
     , m_dragActive(false)
     , m_activeUnitId(-1)
     , m_sourceGrid(-1, -1)
-    , m_rows(Board::ROWS)
-    , m_cols(Board::COLS)
+    , m_board_rows(BoardANDBench::BOARD_ROWS)
+    , m_board_cols(BoardANDBench::BOARD_COLS)
+    , m_bench_rows(BoardANDBench::BENCH_ROW)
+    , m_bench_cols(BoardANDBench::BENCH_COL)
     , m_radius(46.0)
     , m_rowSpacing(69.0)
+    , m_BBSpacing(69.0)
 {}
 
 Game::~Game()
@@ -43,7 +46,7 @@ void Game::reset()
     const QPoint initialPositions[] = {
         QPoint(0, 7),
         QPoint(1, 7),
-        QPoint(2, 7)
+        QPoint(0, 8)
     };
 
     for (int i = 0; i < m_units.size() && i < 3; ++i) {
@@ -205,12 +208,12 @@ void Game::buildScene() // 根据当前棋盘状态构建图形场景，创建Gr
 
     QRectF totalBounds;
     bool first = true;
-    for (int row = 0; row < Board::ROWS; ++row) {
-        for (int col = 0; col < Board::COLS; ++col) {
+    for (int row = 0; row < m_board_rows; ++row) {
+        for (int col = 0; col < m_board_cols; ++col) {
             const QPolygonF poly = cellHexPolygon(row, col);
             GridItem* gridItem = new GridItem(row, col, poly);
             gridItem->setZValue(kZGrid);
-            gridItem->setBaseColor(row < Board::ROWS / 2 ? QColor(80, 60, 60) : QColor(60, 60, 80));
+            gridItem->setBaseColor(row < m_board_rows / 2 ? QColor(80, 60, 60) : QColor(60, 60, 80));
 
             m_scene->addItem(gridItem); // 把格子项添加到场景中
             m_gridItems.push_back(gridItem);
@@ -220,6 +223,22 @@ void Game::buildScene() // 根据当前棋盘状态构建图形场景，创建Gr
             first = false;
         }
     }
+
+    for (int row = m_board_rows; row < m_board_rows + m_bench_rows; ++row) {
+        for (int col = 0; col < m_bench_cols; ++col) {
+            const QPolygonF poly = cellHexPolygon(row, col);
+            GridItem* gridItem = new GridItem(row, col, poly);
+            gridItem->setZValue(kZGrid);
+            gridItem->setBaseColor(QColor(60, 80, 60));
+
+            m_scene->addItem(gridItem); 
+            m_gridItems.push_back(gridItem);
+
+            const QRectF bounds = gridItem->boundingRect();
+            totalBounds = totalBounds.united(bounds);
+            first = false;
+        }
+    }    
 
     for (Unit* unit : m_units) {
         UnitItem* unitItem = new UnitItem(unit);
@@ -236,7 +255,7 @@ void Game::buildScene() // 根据当前棋盘状态构建图形场景，创建Gr
                 this, &Game::handleDropCommand);
     }
 
-    m_scene->setSceneRect(totalBounds.adjusted(-40, -40, 40, 40));
+    m_scene->setSceneRect(totalBounds.adjusted(-25, -25, 25, 25));
 }
 
 void Game::syncFromBoard() // 根据棋盘状态更新所有单位图形项的位置和可见性
@@ -262,9 +281,17 @@ void Game::syncFromBoard() // 根据棋盘状态更新所有单位图形项的�
 }
 
 QPointF Game::gridToWorld(int row, int col) const // 将网格坐标转换为世界坐标
-{
-    const qreal colSpacing = m_radius * qSqrt(3.0);
-    const qreal xOffset = (row % 2 == 0) ? colSpacing * 0.5 : 0.0;
+{   
+    const qreal colSpacing = m_radius * qSqrt(3.0); // 列间距，等于半径乘以sqrt(3)，这是六边形网格的标准水平间距
+    const qreal xOffset = (row % 2 == 0) ? colSpacing * 0.5 : 0.0; // 偶数行需要水平偏移半个列间距，以实现交错排列
+    qreal boardCenterX = (m_board_cols - 0.5) * colSpacing / 2.0; // 计算棋盘中心的X坐标，考虑到最后一列的偏移
+    qreal benchCenterX = (m_bench_cols - 0.5) * colSpacing / 2.0; // 计算备战区中心的X坐标，考虑到最后一列的偏移
+    qreal benchStartX = boardCenterX - benchCenterX; // 计算备战区的起始X坐标，使其相对于棋盘居中
+    if (row >= m_board_rows) { // 如果行号超过棋盘行数，说明在备战区，需要加上备战区的起始X坐标
+        const qreal x = benchStartX + xOffset + col * colSpacing;
+        const qreal y = row * m_rowSpacing + m_BBSpacing;
+        return QPointF(x, y);
+    }
     const qreal x = xOffset + col * colSpacing;
     const qreal y = row * m_rowSpacing;
     return QPointF(x, y);
@@ -275,8 +302,8 @@ QPoint Game::worldToGrid(const QPointF& world) const // 将鼠标坐标转换为
     QPoint best(-1, -1);
     qreal bestDist = 1e18;
 
-    for (int row = 0; row < m_rows; ++row) {
-        for (int col = 0; col < m_cols; ++col) {
+    for (int row = 0; row < m_board_rows; ++row) {
+        for (int col = 0; col < m_board_cols; ++col) {
             const QPointF center = gridToWorld(row, col);
             const qreal dx = world.x() - center.x();
             const qreal dy = world.y() - center.y();
@@ -287,7 +314,19 @@ QPoint Game::worldToGrid(const QPointF& world) const // 将鼠标坐标转换为
             }
         }
     }
-
+    for (int row = m_board_rows; row < m_board_rows + m_bench_rows; ++row) {
+        for (int col = 0; col < m_bench_cols; ++col) {
+            const QPointF center = gridToWorld(row, col);
+            const qreal dx = world.x() - center.x();
+            const qreal dy = world.y() - center.y();
+            const qreal d2 = dx * dx + dy * dy;
+            if (d2 < bestDist) {
+                bestDist = d2;
+                best = QPoint(col, row);
+            }
+        }
+    }
+    // 可能待添加的逻辑：在棋盘和备战区之间的间距中不被认为是选中了某个格子
     return best;
 }
 

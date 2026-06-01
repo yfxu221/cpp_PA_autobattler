@@ -1,10 +1,10 @@
 #include "board.h"
 
-Board::Board()
-    : m_cells(ROWS * COLS, nullptr)
+BoardANDBench::BoardANDBench()
+    : m_cells(BOARD_ROWS * BOARD_COLS + BENCH_ROW * BENCH_COL, nullptr)
 {}
 
-void Board::addUnit(Unit* unit, const QPoint& pos)
+void BoardANDBench::addUnit(Unit* unit, const QPoint& pos)
 {
     const int idx = indexOf(pos);
     if (!unit || idx < 0 || m_cells[idx]) {
@@ -16,7 +16,7 @@ void Board::addUnit(Unit* unit, const QPoint& pos)
     unit->setPosition(pos);
 }
 
-void Board::removeUnit(Unit* unit)
+void BoardANDBench::removeUnit(Unit* unit)
 {
     if (!unit || !m_unitToPosition.contains(unit)) {
         return;
@@ -29,37 +29,52 @@ void Board::removeUnit(Unit* unit)
     m_unitToPosition.remove(unit);
 }
 
-Unit* Board::getUnitAt(const QPoint& pos) const // 获取指定位置的单位
+Unit* BoardANDBench::getUnitAt(const QPoint& pos) const // 获取指定位置的单位
 {
     const int idx = indexOf(pos);
     return idx < 0 ? nullptr : m_cells[idx];
 }
 
-bool Board::hasUnitAt(const QPoint& pos) const // 检查指定位置是否有单位
+bool BoardANDBench::hasUnitAt(const QPoint& pos) const // 检查指定位置是否有单位
 {
     return getUnitAt(pos) != nullptr;
 }
 
-bool Board::isValidPosition(const QPoint& pos) const // 网格位置是否合法（在棋盘范围内）
+bool BoardANDBench::isBoardPosition(const QPoint& pos) const // 检查位置是否在棋盘范围内
 {
-    return pos.x() >= 0 && pos.x() < COLS && pos.y() >= 0 && pos.y() < ROWS;
+    
+    return pos.x() >= 0 && pos.x() < BOARD_COLS && pos.y() >= 0 && pos.y() < BOARD_ROWS; 
 }
 
-bool Board::isPlayerHalf(const QPoint& pos) const // 是否为玩家半区
+bool BoardANDBench::isBenchPosition(const QPoint& pos) const // 检查位置是否在备战区范围内
 {
-    return pos.y() >= ROWS / 2;
+    return pos.x() >= 0 && pos.x() < BENCH_COL && pos.y() >= BOARD_ROWS && pos.y() < BOARD_ROWS + BENCH_ROW;
 }
 
-void Board::clear()
+bool BoardANDBench::isValidPosition(const QPoint& pos) const // 网格位置是否合法（在棋盘范围内）
+{
+    return (pos.x() >= 0 && pos.x() < BOARD_COLS && pos.y() >= 0 && pos.y() < BOARD_ROWS) || (pos.x() >= 0 && pos.x() < BENCH_COL && pos.y() >= BOARD_ROWS && pos.y() < BOARD_ROWS + BENCH_ROW);
+}
+
+bool BoardANDBench::isPlayerHalf(const QPoint& pos) const // 是否为玩家半区(包括备战席)
+{
+    return pos.y() >= BOARD_ROWS / 2 && pos.y() < BOARD_ROWS + BENCH_ROW; // 玩家半区包括棋盘下半部分和备战区
+}
+
+void BoardANDBench::clear()
 {
     std::fill(m_cells.begin(), m_cells.end(), nullptr);
     m_unitToPosition.clear();
 }
 
-int Board::indexOf(const QPoint& pos) const // 将二维坐标转换为一维索引
+int BoardANDBench::indexOf(const QPoint& pos) const // 将二维坐标转换为一维索引
 {
     if (!isValidPosition(pos)) {
         return -1;
     }
-    return pos.y() * COLS + pos.x();
+    if (isBoardPosition(pos)) {
+        return pos.y() * BOARD_COLS + pos.x();
+    }
+    return BOARD_ROWS * BOARD_COLS + (pos.y() - BOARD_ROWS) * BENCH_COL + pos.x();
+    
 }

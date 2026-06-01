@@ -6,19 +6,24 @@
 #include <QVector>
 #include "entity/unit.h"
 
-class Board
+class BoardANDBench // 包含棋盘和备战区的类
 {
 public:
-    static constexpr int ROWS = 8;
-    static constexpr int COLS = 8;
+    static constexpr int BOARD_ROWS = 8;
+    static constexpr int BOARD_COLS = 8;
+    static constexpr int BENCH_ROW = 1;
+    static constexpr int BENCH_COL = 10;
 
-    Board();
-    ~Board() = default;
+    BoardANDBench();
+    ~BoardANDBench() = default;
 
     void addUnit(Unit* unit, const QPoint& pos);
     void removeUnit(Unit* unit);
     Unit* getUnitAt(const QPoint& pos) const;
     bool hasUnitAt(const QPoint& pos) const;
+
+    bool isBoardPosition(const QPoint& pos) const; // 检查位置是否在棋盘范围内
+    bool isBenchPosition(const QPoint& pos) const; // 检查位置是否在备战区范围内
 
     bool isValidPosition(const QPoint& pos) const;
     bool isPlayerHalf(const QPoint& pos) const;
