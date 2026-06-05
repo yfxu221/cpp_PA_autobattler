@@ -38,7 +38,7 @@ public:
     Owner owner() const { return m_owner; } // 获取单位的所有者，表示是玩家控制还是敌人控制
     int maxHp() const { return m_maxHp; } // 获取单位的最大生命值
     int hp() const { return m_hp; } // 获取单位当前的生命值
-    int atk() const { return m_atk; } // 获取单位的攻击力
+    int atk() const; // 获取单位的攻击力
     int range() const { return m_range; } // 获取单位的攻击范围
     int maxMana() const { return m_maxMana; } // 获取单位的最大法力值
     int mana() const { return m_mana; } // 获取单位当前的法力值

@@ -126,8 +126,8 @@ void Game::createStarterUnitsIfNeeded()
         qFatal("无法加载单位数据文件");
     }
 
-    auto tryAppend = [this](UnitData* data, const QString& key, Owner owner) {
-        Unit* u = data->createUnit(key, owner);
+    auto tryAppend = [this](UnitData* data, const QString& key, Owner owner, int starLevel = 1) {
+        Unit* u = data->createUnit(key, owner, starLevel);
         if (u) {
             m_units.append(u);
         } else {
@@ -135,9 +135,9 @@ void Game::createStarterUnitsIfNeeded()
         }
     };
 
-    tryAppend(unitData, "white_e", Owner::PlayerCtrl);
-    tryAppend(unitData, "black_e", Owner::PlayerCtrl);
-    tryAppend(unitData, "gugugaga", Owner::PlayerCtrl);
+    tryAppend(unitData, "white_e", Owner::PlayerCtrl, 3);
+    tryAppend(unitData, "black_e", Owner::PlayerCtrl, 2);
+    tryAppend(unitData, "gugugaga", Owner::PlayerCtrl, 1);
 }
 
 Unit* Game::findUnitById(int unitId) const

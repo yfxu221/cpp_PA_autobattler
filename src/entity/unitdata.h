@@ -18,7 +18,7 @@ class UnitData { // 单位数据管理类，负责加载单位数据、创建单
 public:
     static UnitData* instance();
     bool load(const QString& jsonPath);
-    Unit* createUnit(const QString& key, Owner owner) const;
+    Unit* createUnit(const QString& key, Owner owner, int starLevel = 1) const;
     QList<QString> allKeys() const;
 
 private:

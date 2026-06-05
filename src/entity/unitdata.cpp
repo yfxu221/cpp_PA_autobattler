@@ -95,7 +95,7 @@ bool UnitData::load(const QString& jsonPath)
     return true;
 }
 
-Unit* UnitData::createUnit(const QString& key, Owner owner) const
+Unit* UnitData::createUnit(const QString& key, Owner owner, int starLevel) const
 {
     const auto it = m_templates.constFind(key);
     if (it == m_templates.constEnd()) {
@@ -105,7 +105,7 @@ Unit* UnitData::createUnit(const QString& key, Owner owner) const
 
     const UnitTemplate& temp = it.value();
     return new Unit(temp.name, temp.maxHp, temp.atk, temp.range, temp.maxMana,
-                    1, temp.traits, owner, temp.sprite);
+                    starLevel, temp.traits, owner, temp.sprite);
 }
 
 QList<QString> UnitData::allKeys() const

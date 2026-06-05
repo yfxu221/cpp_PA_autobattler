@@ -17,3 +17,11 @@ Unit::Unit(const QString& name, int maxHp, int atk, int range, int maxMana, int 
     , m_traits(traits)
     , m_spritePath(spritePath)
 {}
+
+int Unit::atk() const
+{
+    if (m_maxMana != 0 && m_mana > 0) {
+        return m_atk*2 + 5;
+    }
+    return m_atk;
+}
