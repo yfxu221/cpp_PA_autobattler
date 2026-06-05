@@ -94,12 +94,18 @@ void UnitItem::ensureSpriteLoaded() const // 确保单位图形项的精灵图�
     m_sprite = pix.scaled(64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 }
 
-QString UnitItem::spriteRelativePathForUnit() const // 根据单位类型返回对应的精灵图片的相对路径，如果单位类型未知则返回空字符串
+QString UnitItem::spriteRelativePathForUnit() const
 {
     if (!m_unit) {
         return QString();
     }
 
+    const QString path = m_unit->spritePath();
+    if (!path.isEmpty()) {
+        return path;
+    }
+
+    // 回退：旧硬编码映射，兼容没有 sprite 数据的旧单位
     const QString name = m_unit->name();
     if (name == QString::fromUtf8("战术")) {
         return QStringLiteral("assets/craftpix-reaper-man-chibi-2d-game-sprites/Reaper_Man_1/PNG/PNG Sequences/Idle/0_Reaper_Man_Idle_000.png");

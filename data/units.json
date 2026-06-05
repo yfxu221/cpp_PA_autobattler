@@ -1,0 +1,52 @@
+[
+  {
+    "key": "white_e",
+    "name": "企厄",
+    "maxHp": 450,
+    "atk": 70,
+    "range": 3,
+    "maxMana": 100,
+    "traits": ["神"],
+    "sprite": "assets/white_e/normal/white_e_normal.png"
+  },
+  {
+    "key": "black_e",
+    "name": "黑厄",
+    "maxHp": 700,
+    "atk": 60,
+    "range": 1,
+    "maxMana": 0,
+    "traits": ["神"],
+    "sprite": "assets/black_e/normal/black_e_normal.png"
+  },
+  {
+    "key": "lingsha",
+    "name": "灵砂",
+    "maxHp": 900,
+    "atk": 10,
+    "range": 1,
+    "maxMana": 0,
+    "traits": ["神", "区"],
+    "sprite": "assets/.../Satyr_01/.../Satyr_01_Idle_000.png"
+  },
+  {
+    "key": "gugugaga",
+    "name": "咕咕嘎嘎",
+    "maxHp": 500,
+    "atk": 90,
+    "range": 1,
+    "maxMana": 0,
+    "traits": ["人"],
+    "sprite": "assets/gugugaga/normal/gugugaga_normal.png"
+  },
+  {
+    "key": "hihihihi",
+    "name": "爱音斯坦",
+    "maxHp": 500,
+    "atk": 90,
+    "range": 1,
+    "maxMana": 0,
+    "traits": ["人"],
+    "sprite": "assets/hihihihi/normal/hihihihi_normal.png"
+  }
+]

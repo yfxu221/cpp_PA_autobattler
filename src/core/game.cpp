@@ -4,6 +4,7 @@
 #include "gui/unititem.h"
 #include <QGraphicsScene>
 #include <QtMath>
+#include "entity/unitdata.h"
 
 namespace {
 constexpr qreal kZGrid = 0.0; // 网格z坐标
@@ -120,9 +121,23 @@ void Game::createStarterUnitsIfNeeded()
         return;
     }
 
-    m_units.append(new Unit("战术"));
-    m_units.append(new Unit("弓手"));
-    m_units.append(new Unit("法师"));
+    UnitData* unitData = UnitData::instance();
+    if (!unitData->load("")) {
+        qFatal("无法加载单位数据文件");
+    }
+
+    auto tryAppend = [this](UnitData* data, const QString& key, Owner owner) {
+        Unit* u = data->createUnit(key, owner);
+        if (u) {
+            m_units.append(u);
+        } else {
+            qWarning() << "创建单位失败，key:" << key;
+        }
+    };
+
+    tryAppend(unitData, "white_e", Owner::PlayerCtrl);
+    tryAppend(unitData, "black_e", Owner::PlayerCtrl);
+    tryAppend(unitData, "gugugaga", Owner::PlayerCtrl);
 }
 
 Unit* Game::findUnitById(int unitId) const
