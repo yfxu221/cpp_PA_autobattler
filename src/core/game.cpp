@@ -25,6 +25,10 @@ Game::Game(QObject* parent)
     , m_radius(46.0)
     , m_rowSpacing(69.0)
     , m_BBSpacing(69.0)
+    , m_player()
+    , m_enemy()
+    , m_dragStartPlace(DragStartPlace::None)
+    , m_phase(GamePhase::Preparation)
 {}
 
 Game::~Game()
@@ -41,7 +45,9 @@ void Game::initialize()
 }
 
 void Game::reset()
-{
+{   
+    m_phase = GamePhase::Preparation;
+    emit phaseChanged(GamePhase::Preparation);
     m_board.clear();
 
     const QPoint initialPositions[] = {
@@ -58,10 +64,19 @@ void Game::reset()
 }
 
 void Game::handleDragStarted(int unitId, const QPoint& sourceGrid, const QPointF&)
-{
+{   
+    if (m_phase != GamePhase::Preparation) {
+        return;
+    }
+    
     m_dragActive = true;
     m_activeUnitId = unitId;
     m_sourceGrid = sourceGrid;
+    if (m_board.isValidPosition(sourceGrid) && !m_board.isBenchPosition(sourceGrid)) {
+        m_dragStartPlace = DragStartPlace::Board;
+    }else{
+        m_dragStartPlace = DragStartPlace::Bench;
+    }
 
     UnitItem* item = findUnitItem(unitId);
     if (item) {
@@ -181,7 +196,17 @@ void Game::clearGridHighlights() // 清除所有格子的高亮状态
 }
 
 bool Game::canApplyDrop(int unitId, const QPoint& source, const QPoint& target) const
-{
+{   
+    if(m_phase != GamePhase::Preparation) {
+        return false;
+    }
+
+    bool reachMaxFieldUnits = countFieldUnits(Owner::PlayerCtrl) >= m_player.maxFieldUnits();
+    if (m_board.isBoardPosition(target) && m_dragStartPlace == DragStartPlace::Bench && reachMaxFieldUnits) {
+        return false;
+        
+    }
+
     Unit* unit = findUnitById(unitId);
     if (!unit) {
         return false;
@@ -293,6 +318,7 @@ void Game::syncFromBoard() // 根据棋盘状态更新所有单位图形项的�
         item->setPos(gridToWorld(pos.y(), pos.x()));
         item->setZValue(kZUnit);
     }
+    emit stateUpdated(); // 通知 UI 更新状态变化
 }
 
 QPointF Game::gridToWorld(int row, int col) const // 将网格坐标转换为世界坐标
@@ -361,4 +387,71 @@ QPolygonF Game::cellHexPolygon(int row, int col) const // 计算指定网格单�
     }
 
     return poly;
+}
+
+void Game::startBattle() {
+    if (m_phase != GamePhase::Preparation) return;
+    m_phase = GamePhase::Battle;
+    emit phaseChanged(m_phase);
+    onBattleStart();
+}
+
+void Game::startSettlement() {
+    if (m_phase != GamePhase::Battle) return;
+    m_phase = GamePhase::Settlement;
+    emit phaseChanged(m_phase);
+    onSettlementStart();
+}
+
+void Game::startPreparation() {
+    if (m_phase != GamePhase::Settlement) return;
+    m_phase = GamePhase::Preparation;
+    emit phaseChanged(m_phase);
+    onPreparationStart();
+    emit stateUpdated(); // 通知 UI 更新状态变化
+}
+
+void Game::onBattleStart() {
+    // 待填充
+    runBattleLoop();
+}
+
+void Game::onSettlementStart() {
+    // 待填充
+}
+
+void Game::onPreparationStart() {
+    // 待填充
+}
+
+void Game::runBattleLoop() {
+    // 待填充：模拟战斗过程，更新单位状态，直到一方胜利
+}
+
+int Game::countFieldUnits(Owner owner) const {
+    int count = 0;
+    for (int row = 0; row < m_board_rows; ++row) {
+        for (int col = 0; col < m_board_cols; ++col) {
+            Unit* unit = m_board.getUnitAt(QPoint(col, row));
+            if (unit && unit->owner() == owner) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+QHash<QString, int> Game::getTraitCounts(Owner owner) const {
+    QHash<QString, int> traitCounts;
+    for (int row = 0; row < m_board_rows; ++row) {
+        for (int col = 0; col < m_board_cols; ++col) {
+            Unit* unit = m_board.getUnitAt(QPoint(col, row));
+            if (unit && unit->owner() == owner) {
+                for (const QString& trait : unit->traits()) {
+                    traitCounts[trait]++;
+                }
+            }
+        }
+    }
+    return traitCounts;
 }

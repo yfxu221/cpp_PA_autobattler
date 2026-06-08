@@ -12,6 +12,7 @@ GameWindow::GameWindow(QWidget* parent)
     , m_mainLayout(new QVBoxLayout())
     , m_view(new QGraphicsView(this))
     , m_resetButton(new QPushButton("Reset", this))
+    , m_battleButton(new QPushButton("开始战斗", this))
     , m_game(new Game(this))
 {
     setupUI();
@@ -20,12 +21,55 @@ GameWindow::GameWindow(QWidget* parent)
 
 GameWindow::~GameWindow() = default;
 
-void GameWindow::onResetButtonClicked()
+void GameWindow::onResetButtonClicked() // 重置按钮点击事件处理函数，调用游戏的reset方法重置游戏状态
 {
     if (m_game) {
         m_game->reset();
     }
 }
+
+void GameWindow::onBattleButtonClicked() {
+    if (m_game) {
+        m_game->startBattle();
+    }
+}
+
+void GameWindow::refreshInfoBar() {
+    Player* p = m_game->player();
+    m_levelLabel->setText(QString("等级: %1").arg(p->level()));
+    m_xpLabel->setText(QString("经验: %1/%2").arg(p->xp()).arg(p->xpToNext()));
+    m_goldLabel->setText(QString("金币: %1").arg(p->gold()));
+    m_hpLabel->setText(QString("生命值: %1/%2").arg(p->hp()).arg(p->maxHp()));
+    m_fieldLabel->setText(QString("场上: %1/%2").arg(m_game->countFieldUnits(PlayerCtrl)).arg(p->maxFieldUnits()));
+    
+    QStringList traitParts;
+    const auto traits = m_game->getTraitCounts(PlayerCtrl);
+    for (auto it = traits.begin(); it != traits.end(); ++it) {
+        traitParts << QString("%1×%2").arg(it.key()).arg(it.value());
+    }
+    m_traitLabel->setText(traitParts.isEmpty() ? "羁绊: 无" : "羁绊: " + traitParts.join(" · "));
+}
+
+void GameWindow::onPhaseChanged(GamePhase phase) {
+    switch (phase) {
+    case GamePhase::Preparation:
+        m_battleButton->setText("开始战斗");
+        m_battleButton->setEnabled(true);
+        m_resetButton->setEnabled(true);
+        break;
+    case GamePhase::Battle:
+        m_battleButton->setText("战斗中...");
+        m_battleButton->setEnabled(false);
+        m_resetButton->setEnabled(true);
+        break;
+    case GamePhase::Settlement:
+        m_battleButton->setText("结算中...");
+        m_battleButton->setEnabled(false);
+        m_resetButton->setEnabled(false);
+        break;
+    }
+}
+
 
 void GameWindow::setupUI()
 {
@@ -67,15 +111,50 @@ void GameWindow::setupUI()
 
     m_mainLayout->addWidget(m_view, 1); // 将游戏视图添加到主布局中，并设置伸缩因子为1，使其占满剩余空间
 
+    // InfoBar部分
+    m_infoBar = new QWidget(this);
+    m_infoLayout = new QHBoxLayout(m_infoBar);
+    m_infoLayout->setContentsMargins(8, 4, 8, 4);
+    m_levelLabel = new QLabel("等级: -", m_infoBar);
+    m_xpLabel = new QLabel("经验: -/-", m_infoBar);
+    m_goldLabel = new QLabel("金币: -", m_infoBar);
+    m_hpLabel = new QLabel("生命值: -/-", m_infoBar);
+    m_fieldLabel = new QLabel("场上: -/-", m_infoBar);
+    m_traitLabel = new QLabel("羁绊: 无", m_infoBar);
+    m_infoLayout->addWidget(m_levelLabel);
+    m_infoLayout->addWidget(new QLabel(" | ", m_infoBar));
+    m_infoLayout->addWidget(m_xpLabel);
+    m_infoLayout->addWidget(new QLabel(" | ", m_infoBar));
+    m_infoLayout->addWidget(m_goldLabel);
+    m_infoLayout->addWidget(new QLabel(" | ", m_infoBar));
+    m_infoLayout->addWidget(m_hpLabel);
+    m_infoLayout->addWidget(new QLabel(" | ", m_infoBar));
+    m_infoLayout->addWidget(m_fieldLabel);
+    m_infoLayout->addWidget(new QLabel(" | ", m_infoBar));
+    m_infoLayout->addWidget(m_traitLabel);
+    m_infoLayout->addStretch();
+    m_mainLayout->addWidget(m_infoBar);
+
+
     QWidget* controlBar = new QWidget(this); // 控制按钮栏
     QHBoxLayout* controlLayout = new QHBoxLayout(controlBar); // 水平布局，用于放置控制按钮
     controlLayout->setContentsMargins(0, 0, 0, 0); // 去除布局边距
     controlLayout->addWidget(m_resetButton); // 将重置按钮添加到控制栏
+    controlLayout->addWidget(m_battleButton); // 将"开始战斗"按钮添加到控制栏
     controlLayout->addStretch(); // 添加一个伸缩项，使按钮靠左显示
     m_mainLayout->addWidget(controlBar); // 将控制栏添加到主布局中
 
     connect(m_resetButton, &QPushButton::clicked,
             this, &GameWindow::onResetButtonClicked); // 连接重置按钮的点击信号到槽函数
+
+    connect(m_battleButton, &QPushButton::clicked,
+            this, &GameWindow::onBattleButtonClicked); // 连接"开始战斗"按钮的点击信号到槽函数
+
+    connect(m_game, &Game::phaseChanged,
+            this, &GameWindow::onPhaseChanged); // 连接游戏阶段变化信号到槽函数
+
+    connect(m_game, &Game::stateUpdated,
+            this, &GameWindow::refreshInfoBar); // 连接游戏状态更新信号到刷新信息栏的槽函数
 
     m_view->setScene(m_game->scene()); // 将游戏的图形场景设置为视图的场景，使游戏内容能够显示在视图中
 }
