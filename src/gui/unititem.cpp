@@ -26,6 +26,8 @@ void UnitItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget
 
     ensureSpriteLoaded();
 
+    drawTeamGlow(painter);
+
     if (!m_sprite.isNull()) { // 如果精灵图片已加载成功，则将其绘制在单位图形项的中心位置，目标矩形为(-40, -40, 80, 80)，源矩形为精灵图片的整个区域
         const QRectF targetRect(-40, -40, 80, 80);
         painter->drawPixmap(targetRect, m_sprite, m_sprite.rect());
@@ -58,7 +60,7 @@ void UnitItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget
     if(m_unit) { // 画单位血量、mana、attack、敌我方等信息
         drawStarLevel(painter);
         drawAttackValue(painter);
-        drawTeamIndicator(painter);
+        drawTraits(painter);
         drawStatus(painter);
     }
 }
@@ -167,27 +169,52 @@ void UnitItem::drawAttackValue(QPainter* painter)
     painter->drawText(bgRect, Qt::AlignCenter, atkText); // 绘制攻击力文本
 }
 
-void UnitItem::drawTeamIndicator(QPainter* painter)
+void UnitItem::drawTraits(QPainter* painter)
 {
-    if (!m_unit) {
+    if (!m_unit || m_unit->traits().isEmpty()) {
         return;
     }
-    Owner owner = m_unit->owner();
+    const auto& traits = m_unit->traits();
 
     int margin = 3;
     int r = 5;
+    int spacing = r*2 + 2;
 
     // 背景框
-    QRectF bgRect(32 - r*2 - margin, 28 - r*2 - margin, r*2 + margin*2, r*2 + margin*2);
+    int bgH = traits.size() * spacing + margin * 2 - 3;
+    int bgW = r * 2 + margin * 2;
+    qreal bgX = 40 - bgW;
+    qreal bgY = -15;
+    QRectF bgRect(bgX, bgY, bgW, bgH);
     painter->setBrush(QColor(180,180,180,160));
     painter->setPen(Qt::NoPen);
     painter->drawRoundedRect(bgRect, 3, 3);
 
     // 圆点本身
-    painter->setBrush(owner == Owner::PlayerCtrl ? Qt::blue : Qt::red);
-    painter->setPen(Qt::NoPen);
-    painter->drawEllipse(bgRect.center(), r, r);
+    int i = 0;
+    for (const QString& trait : traits) {
+        QColor color = traitColor(trait);
+        painter->setBrush(color);
+        painter->setPen(Qt::NoPen);
+        QPointF center(bgX + margin + r, bgY + margin + r + i * spacing);
+        painter->drawEllipse(center, r, r);
+        ++i;
+    }
 }
+
+void UnitItem::drawTeamGlow(QPainter* painter)
+{   
+    if (!m_unit) return;
+
+    bool isPlayer = (m_unit->owner() == Owner::PlayerCtrl);
+    QColor glow = isPlayer ? QColor(60, 120, 255, 180)   // 蓝光
+                           : QColor(255, 60, 60, 180);    // 红光
+
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(glow);
+    painter->drawEllipse(QRectF(-28, 18, 56, 15));
+}
+
 
 void UnitItem::ensureSpriteLoaded() const // 确保单位图形项的精灵图片已加载，如果尚未尝试加载过，则根据单位类型构建相对路径并尝试加载图片，加载成功后将其缩放到适当大小
 {

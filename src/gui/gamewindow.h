@@ -23,6 +23,7 @@ private slots:
     void onBattleButtonClicked();
     void onPhaseChanged(GamePhase phase);  // 根据阶段更新按钮状态
     void refreshInfoBar(); // 刷新信息栏显示玩家状态等信息
+    void onBuyXpButtonClicked(); // 购买经验按钮点击事件处理函数
 
 private:
     void setupUI();
@@ -43,6 +44,8 @@ private:
     QLabel* m_hpLabel; // 生命值标签
     QLabel* m_fieldLabel; // 棋盘单位数量标签
     QLabel* m_traitLabel; // 羁绊标签
+
+    QPushButton* m_buyXpButton; // 购买经验按钮
 };
 
 #endif // GAMEWINDOW_H

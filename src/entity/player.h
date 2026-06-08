@@ -18,6 +18,7 @@ public:
     int level() const { return m_level; } // 获取玩家当前的等级
     int xp() const { return m_xp; } // 获取玩家当前的经验值
     int xpToNext() const { return m_xpToNext; } // 获取玩家升级所需的经验值
+    int maxXp() const {return calculateMaxXpForLevel(m_maxLevel);} // 获取玩家可以达到的最大经验值，等同于达到最高等级所需的经验值
 
 
 private:
@@ -27,6 +28,9 @@ private:
     int m_level; // 玩家当前的等级
     int m_xp; // 玩家当前的经验值
     int m_xpToNext; // 升级所需的经验值
+    int m_maxLevel = 7; // 玩家可以达到的最高等级
+
+    int calculateMaxXpForLevel(int level) const { return 4 + (level - 1) * 2; } // 计算指定等级所需的最大经验值
 
 };
 

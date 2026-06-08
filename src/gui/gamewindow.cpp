@@ -14,6 +14,7 @@ GameWindow::GameWindow(QWidget* parent)
     , m_resetButton(new QPushButton("Reset", this))
     , m_battleButton(new QPushButton("开始战斗", this))
     , m_game(new Game(this))
+    , m_buyXpButton(new QPushButton("购买2经验", this))
 {
     setupUI();
     m_game->initialize();
@@ -41,11 +42,19 @@ void GameWindow::refreshInfoBar() {
     m_goldLabel->setText(QString("金币: %1").arg(p->gold()));
     m_hpLabel->setText(QString("生命值: %1/%2").arg(p->hp()).arg(p->maxHp()));
     m_fieldLabel->setText(QString("场上: %1/%2").arg(m_game->countFieldUnits(PlayerCtrl)).arg(p->maxFieldUnits()));
-    
+    m_buyXpButton->setText(QString("购买2经验 (2金币)"));
+    m_buyXpButton->setEnabled(p->gold() >= 2);
+
     QStringList traitParts;
     const auto traits = m_game->getTraitCounts(PlayerCtrl);
     for (auto it = traits.begin(); it != traits.end(); ++it) {
-        traitParts << QString("%1×%2").arg(it.key()).arg(it.value());
+        QColor color = traitColor(it.key());
+        QString hex = QString("#%1%2%3")
+        .arg(color.red(), 2, 16, QChar('0'))
+        .arg(color.green(), 2, 16, QChar('0'))
+        .arg(color.blue(), 2, 16, QChar('0'));
+    traitParts << QString("<span style='color:%1'>%2×%3</span>")
+        .arg(hex).arg(it.key()).arg(it.value());
     }
     m_traitLabel->setText(traitParts.isEmpty() ? "羁绊: 无" : "羁绊: " + traitParts.join(" · "));
 }
@@ -56,18 +65,29 @@ void GameWindow::onPhaseChanged(GamePhase phase) {
         m_battleButton->setText("开始战斗");
         m_battleButton->setEnabled(true);
         m_resetButton->setEnabled(true);
+        if (m_game->player()->xp() < m_game->player()->maxXp() && m_game->player()->gold() >= 2) {
+            m_buyXpButton->setEnabled(true);
+        } else {
+            m_buyXpButton->setEnabled(false);
+        }
         break;
     case GamePhase::Battle:
         m_battleButton->setText("战斗中...");
         m_battleButton->setEnabled(false);
         m_resetButton->setEnabled(true);
+        m_buyXpButton->setEnabled(false);
         break;
     case GamePhase::Settlement:
         m_battleButton->setText("结算中...");
         m_battleButton->setEnabled(false);
         m_resetButton->setEnabled(false);
+        m_buyXpButton->setEnabled(false);
         break;
     }
+}
+
+void GameWindow::onBuyXpButtonClicked() {
+    m_game->buyXp(2); // 购买2点经验
 }
 
 
@@ -141,11 +161,15 @@ void GameWindow::setupUI()
     controlLayout->setContentsMargins(0, 0, 0, 0); // 去除布局边距
     controlLayout->addWidget(m_resetButton); // 将重置按钮添加到控制栏
     controlLayout->addWidget(m_battleButton); // 将"开始战斗"按钮添加到控制栏
+    controlLayout->addWidget(m_buyXpButton); // 将购买经验按钮添加到控制栏
     controlLayout->addStretch(); // 添加一个伸缩项，使按钮靠左显示
     m_mainLayout->addWidget(controlBar); // 将控制栏添加到主布局中
 
     connect(m_resetButton, &QPushButton::clicked,
             this, &GameWindow::onResetButtonClicked); // 连接重置按钮的点击信号到槽函数
+
+    connect(m_buyXpButton, &QPushButton::clicked,
+            this, &GameWindow::onBuyXpButtonClicked); // 连接购买经验按钮的点击信号到槽函数
 
     connect(m_battleButton, &QPushButton::clicked,
             this, &GameWindow::onBattleButtonClicked); // 连接"开始战斗"按钮的点击信号到槽函数

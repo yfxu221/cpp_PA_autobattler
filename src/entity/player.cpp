@@ -2,7 +2,7 @@
 #include <algorithm>
 
 Player::Player()
-    : m_gold(5)
+    : m_gold(20)
     , m_hp(100)
     , m_maxHp(100)
     , m_level(1)
@@ -43,7 +43,7 @@ void Player::addXp(int amount)
     while (m_xp >= m_xpToNext) {
         m_xp -= m_xpToNext;
         m_level++;
-        m_xpToNext = 4 + (m_level - 1) * 2; // 升级所需经验值递增
+        m_xpToNext = calculateMaxXpForLevel(m_level);
     }
 }
 

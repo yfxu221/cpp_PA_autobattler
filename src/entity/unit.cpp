@@ -1,5 +1,14 @@
 #include "unit.h"
 
+QColor traitColor(const QString& trait) {
+    static QHash<QString, QColor> colorMap = {
+        {"人", QColor(80, 200, 80)},
+        {"神", QColor(255, 180, 40)},
+        {"区", QColor(180, 100, 255)}
+    };
+    return colorMap.value(trait, QColor(128, 128, 128)); // 默认灰色
+}
+
 int Unit::s_nextId = 0; // 静态成员变量初始化，确保每个单位都有一个唯一的ID，从0开始递增
 
 Unit::Unit(const QString& name, int maxHp, int atk, int range, int maxMana, int starLevel, const QSet<QString>& traits, Owner owner, const QString& spritePath)

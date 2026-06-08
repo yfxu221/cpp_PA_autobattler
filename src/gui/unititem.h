@@ -19,7 +19,8 @@ public:
     void drawStatus(QPainter* painter); // 绘制unit生命和mana信息
     void drawStarLevel(QPainter* painter); // 绘制unit星级信息
     void drawAttackValue(QPainter* painter); // 绘制unit攻击力信息
-    void drawTeamIndicator(QPainter* painter); // 绘制单位所属队伍的指示器
+    void drawTraits(QPainter* painter); // 绘制单位所属队伍的指示器
+    void drawTeamGlow(QPainter* painter); // 绘制单位所属队伍的光晕效果
 
     Unit* unit() const { return m_unit; } // 获取对应的单位对象
     int unitId() const;

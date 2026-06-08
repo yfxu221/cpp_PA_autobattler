@@ -60,7 +60,7 @@ public:
     int countFieldUnits(Owner owner) const; // 计算当前棋盘上单位的数量
     QHash<QString, int> getTraitCounts(Owner owner) const; // 获取指定所有者的羁绊计数
     int playerMaxFieldUnits() const { return m_player.maxFieldUnits(); } // 获取玩家在棋盘上可以拥有的最大单位数量
-
+    void buyXp(int amount); // 玩家购买经验，增加经验值
 
 signals:
     void phaseChanged(GamePhase newPhase);  // 通知 UI 更新

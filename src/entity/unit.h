@@ -5,11 +5,14 @@
 #include <QString>
 #include<QSet>
 #include <algorithm>
+#include <QColor>
 
 enum Owner{
     PlayerCtrl,
     EnemyCtrl
 };
+
+QColor traitColor(const QString& trait); // 根据羁绊名称返回对应的颜色
 
 class Unit // 代表一个单位的类，包含单位的ID、名称和位置等属性
 {

@@ -152,7 +152,7 @@ void Game::createStarterUnitsIfNeeded()
 
     tryAppend(unitData, "white_e", Owner::PlayerCtrl, 3);
     tryAppend(unitData, "black_e", Owner::PlayerCtrl, 2);
-    tryAppend(unitData, "gugugaga", Owner::PlayerCtrl, 1);
+    tryAppend(unitData, "lingsha", Owner::PlayerCtrl, 1);
 }
 
 Unit* Game::findUnitById(int unitId) const
@@ -454,4 +454,11 @@ QHash<QString, int> Game::getTraitCounts(Owner owner) const {
         }
     }
     return traitCounts;
+}
+
+void Game::buyXp(int amount) {
+    if (m_phase != GamePhase::Preparation || m_player.gold() < amount) return;
+    m_player.addXp(amount);
+    m_player.spendGold(amount); // 1:1兑换
+    emit stateUpdated(); // 通知 UI 更新状态变化
 }
