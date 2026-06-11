@@ -73,6 +73,8 @@ bool UnitData::load(const QString& jsonPath)
         temp.range = object.value("range").toInt();
         temp.maxMana = object.value("maxMana").toInt();
         temp.sprite = object.value("sprite").toString();
+        temp.attackCooldown = object.value("attackCooldown").toInt();
+        temp.speed = object.value("speed").toInt();
 
         const QJsonValue traitsValue = object.value("traits");
         if (traitsValue.isArray()) {
@@ -105,7 +107,7 @@ Unit* UnitData::createUnit(const QString& key, Owner owner, int starLevel) const
 
     const UnitTemplate& temp = it.value();
     return new Unit(temp.name, temp.maxHp, temp.atk, temp.range, temp.maxMana,
-                    starLevel, temp.traits, owner, temp.sprite);
+                    starLevel, temp.speed, temp.traits, owner, temp.sprite, temp.attackCooldown);
 }
 
 QList<QString> UnitData::allKeys() const

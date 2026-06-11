@@ -26,7 +26,9 @@ file(GLOB_RECURSE HEADERS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hxx"
 )
 
-add_executable(Synera_Starter ${SOURCES} ${HEADERS})
+add_executable(Synera_Starter ${SOURCES} ${HEADERS}
+    src/core/pathfinder.cpp
+    src/core/battlesystem.cpp)
 
 target_include_directories(Synera_Starter PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src

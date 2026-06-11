@@ -53,10 +53,11 @@ void Game::reset()
     const QPoint initialPositions[] = {
         QPoint(0, 7),
         QPoint(1, 7),
-        QPoint(0, 8)
+        QPoint(0, 8),
+        QPoint(1, 1)
     };
 
-    for (int i = 0; i < m_units.size() && i < 3; ++i) {
+    for (int i = 0; i < m_units.size() && i < 4; ++i) {
         m_board.addUnit(m_units.at(i), initialPositions[i]);
     }
 
@@ -150,9 +151,10 @@ void Game::createStarterUnitsIfNeeded()
         }
     };
 
-    tryAppend(unitData, "white_e", Owner::PlayerCtrl, 3);
+    tryAppend(unitData, "white_e", Owner::PlayerCtrl, 2);
     tryAppend(unitData, "black_e", Owner::PlayerCtrl, 2);
     tryAppend(unitData, "lingsha", Owner::PlayerCtrl, 1);
+    tryAppend(unitData, "gugugaga", Owner::EnemyCtrl, 3);
 }
 
 Unit* Game::findUnitById(int unitId) const
@@ -308,7 +310,7 @@ void Game::syncFromBoard() // 根据棋盘状态更新所有单位图形项的�
         }
 
         const QPoint pos = item->unit()->position();
-        if (!m_board.isValidPosition(pos) || m_board.getUnitAt(pos) != item->unit()) {
+        if (!m_board.isValidPosition(pos) || !item->unit()->isAlive() || m_board.getUnitAt(pos) != item->unit()) {
             item->setVisible(false);
             continue;
         }
@@ -317,6 +319,7 @@ void Game::syncFromBoard() // 根据棋盘状态更新所有单位图形项的�
         item->setGridPos(pos);
         item->setPos(gridToWorld(pos.y(), pos.x()));
         item->setZValue(kZUnit);
+        item->update(); // 强制重绘，确保每 tick 血量等信息刷新
     }
     emit stateUpdated(); // 通知 UI 更新状态变化
 }
@@ -393,6 +396,7 @@ void Game::startBattle() {
     if (m_phase != GamePhase::Preparation) return;
     m_phase = GamePhase::Battle;
     emit phaseChanged(m_phase);
+    m_battleIndex ++;
     onBattleStart();
 }
 
@@ -412,8 +416,43 @@ void Game::startPreparation() {
 }
 
 void Game::onBattleStart() {
-    // 待填充
-    runBattleLoop();
+    if(!m_battleSystem){
+        m_battleSystem = new BattleSystem(this);
+        connect(m_battleSystem, &BattleSystem::stateUpdated,
+                this, &Game::syncFromBoard);           // 更新GUI
+        connect(m_battleSystem, &BattleSystem::battleFinished,
+                this, &Game::onBattleFinished);       // 战斗结束处理
+    }
+    // 只让棋盘上的单位参战，备战席单位不参与寻路和羁绊计算
+    m_battleUnits.clear();
+    for (Unit* unit : m_units) {
+        if (unit->isAlive() && m_board.isBoardPosition(unit->position())) {
+            m_battleUnits.append(unit);
+        }
+    }
+    m_battleSystem->start(m_board, m_battleUnits, &m_player, &m_enemy);
+}
+
+void Game::onBattleFinished(BattleResult result) {
+    m_battleSystem->stop();
+    if(result == BattleResult::Draw){
+        // 平局处理
+        m_player.takeDamage(10);
+        m_enemy.takeDamage(10);
+        m_player.addGold(m_battleIndex * 2); // 奖励金币，随战斗回合增加
+        m_enemy.addGold(m_battleIndex * 2);
+    }
+    else{
+        Player& winner = (result == BattleResult::PlayerWin) ? m_player : m_enemy;
+        Player& loser = (result == BattleResult::PlayerWin) ? m_enemy : m_player;
+        // 处理winner和loser
+        loser.takeDamage(10+m_battleIndex*5); // 失败方受到伤害
+        winner.addGold(m_battleIndex * 5); // 胜利方获得金币，随战斗回合增加
+        loser.addGold(m_battleIndex); // 失败方获得少量金币，随战斗回合增加
+    }
+    emit stateUpdated();
+    startSettlement(); // 进入结算阶段
+    
 }
 
 void Game::onSettlementStart() {
@@ -424,9 +463,6 @@ void Game::onPreparationStart() {
     // 待填充
 }
 
-void Game::runBattleLoop() {
-    // 待填充：模拟战斗过程，更新单位状态，直到一方胜利
-}
 
 int Game::countFieldUnits(Owner owner) const {
     int count = 0;

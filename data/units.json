@@ -7,7 +7,9 @@
     "range": 3,
     "maxMana": 10,
     "traits": ["神"],
-    "sprite": "assets/white_e/normal/white_e_normal.png"
+    "sprite": "assets/white_e/normal/white_e_normal.png",
+    "attackCooldown": 2,
+    "speed": 20
   },
   {
     "key": "black_e",
@@ -17,7 +19,9 @@
     "range": 1,
     "maxMana": 0,
     "traits": ["神"],
-    "sprite": "assets/black_e/normal/black_e_normal.png"
+    "sprite": "assets/black_e/normal/black_e_normal.png",
+    "attackCooldown": 1,
+    "speed":25
   },
   {
     "key": "lingsha",
@@ -27,17 +31,21 @@
     "range": 1,
     "maxMana": 0,
     "traits": ["神", "区"],
-    "sprite": "assets/.../Satyr_01/.../Satyr_01_Idle_000.png"
+    "sprite": "assets/.../Satyr_01/.../Satyr_01_Idle_000.png",
+    "attackCooldown": 3,
+    "speed": 10
   },
   {
     "key": "gugugaga",
     "name": "咕咕嘎嘎",
-    "maxHp": 5,
+    "maxHp": 80,
     "atk": 2,
     "range": 1,
     "maxMana": 0,
     "traits": ["人"],
-    "sprite": "assets/gugugaga/normal/gugugaga_normal.png"
+    "sprite": "assets/gugugaga/normal/gugugaga_normal.png",
+    "attackCooldown": 2,
+    "speed":30
   },
   {
     "key": "hihihihi",
@@ -47,6 +55,8 @@
     "range": 1,
     "maxMana": 0,
     "traits": ["人"],
-    "sprite": "assets/hihihihi/normal/hihihihi_normal.png"
+    "sprite": "assets/hihihihi/normal/hihihihi_normal.png",
+    "attackCooldown": 2,
+    "speed": 40
   }
 ]

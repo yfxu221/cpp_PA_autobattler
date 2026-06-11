@@ -12,6 +12,14 @@ enum Owner{
     EnemyCtrl
 };
 
+enum UnitState{
+    Idle, // 空闲状态
+    Moving, // 移动状态
+    Attacking, // 攻击状态
+    Casting, // 施法状态
+    Dead // 死亡状态
+};
+
 QColor traitColor(const QString& trait); // 根据羁绊名称返回对应的颜色
 
 class Unit // 代表一个单位的类，包含单位的ID、名称和位置等属性
@@ -23,9 +31,12 @@ public:
                 int range = 1,
                 int maxMana = 100,
                 int starLevel = 1,
+                int speed = 1,
                 const QSet<QString>& traits = {},
                 Owner owner = PlayerCtrl,
-                const QString& spritePath = QString());
+                const QString& spritePath = QString(),
+                int attackCooldown = 2
+                );
     ~Unit() = default;
 
     int id() const { return m_id; } // 获取单位的唯一ID，单位ID在创建时自动分配，确保每个单位都有一个独特的标识符
@@ -48,9 +59,15 @@ public:
     int starLevel() const { return m_starLevel; } // 获取单位的星级
     const QSet<QString>& traits() const { return m_traits; } // 获取单位的羁绊集合
     QString spritePath() const { return m_spritePath; } // 获取单位的精灵图片路径
+    UnitState state() const { return m_state; } // 获取单位的当前状态
+    void setState(UnitState state) { m_state = state; } // 设置单位的当前状态
 
     void setHp(int hp) { m_hp = std::clamp(hp, 0, m_maxHp); } // 设置单位的生命值，确保不超过最大生命值且不低于0
     void setMana(int mana) { m_mana = std::clamp(mana, 0, m_maxMana); } // 设置单位的法力值，确保不超过最大
+    void processCooldown(); // 每tick调用：若冷却中则递减1（纯计数，不碰状态）
+    void resetCooldown();   // 攻击后调用：将冷却重置为最大值
+    bool isCooldownReady() const { return m_currentCooldown <= 0; } // 检查单位是否准备好进行下一次攻击
+    int speed() const { return m_speed; } // 获取单位的速度
 
 private:
     static int s_nextId; // 静态成员变量，用于生成唯一的单位ID，每创建一个单位，s_nextId就会递增，确保每个单位都有一个独特的ID
@@ -68,6 +85,10 @@ private:
     QSet<QString> m_traits; //单位羁绊
     int m_starLevel; //单位星级
     QString m_spritePath; // 精灵图片路径
+    UnitState m_state; // 单位的当前状态
+    int m_attackCooldown; // 记录攻击冷却时间，单位为tick数
+    int m_currentCooldown = 0; // 当前剩余的冷却时间，单位为tick数
+    int m_speed; //单位速度，影响移动优先级
 
 };
 

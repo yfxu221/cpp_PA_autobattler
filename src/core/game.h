@@ -12,6 +12,7 @@
 #include <vector>
 #include "board.h"
 #include "entity/player.h"
+#include "battlesystem.h"
 
 class Unit;
 class QGraphicsScene;
@@ -65,6 +66,7 @@ public:
 signals:
     void phaseChanged(GamePhase newPhase);  // 通知 UI 更新
     void stateUpdated(); // 通知 UI 更新状态变化
+    void SettlementGUI(); // 通知 UI 显示结算界面
 
 private:
     void createStarterUnitsIfNeeded();
@@ -104,12 +106,16 @@ private:
     GamePhase m_phase = GamePhase::Preparation; // 当前游戏阶段，初始值为Preparation
     Player m_player;   // 玩家
     Player m_enemy;    // 敌方
+    BattleSystem* m_battleSystem = nullptr; // 战斗系统，负责处理战斗逻辑
+    QList<Unit*> m_battleUnits; // 当前参战单位（仅棋盘上的单位），传给BattleSystem
+
+    int m_battleIndex = 0; // 战斗回合计数器，记录当前是第几轮战斗
 
     // 各阶段的入口逻辑
     void onBattleStart();
     void onSettlementStart();
     void onPreparationStart();
-    void runBattleLoop();  // 战斗模拟
+    void onBattleFinished(BattleResult result);
 
 };
 

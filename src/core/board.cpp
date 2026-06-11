@@ -29,6 +29,31 @@ void BoardANDBench::removeUnit(Unit* unit)
     m_unitToPosition.remove(unit);
 }
 
+void BoardANDBench::moveUnit(Unit* unit, const QPoint& newPos)
+{
+    if (!unit || !m_unitToPosition.contains(unit)) {
+        return;
+    }
+
+    const int newIdx = indexOf(newPos);
+    if (newIdx < 0 || m_cells[newIdx]) {
+        return;  // 目标位置无效或已被占据
+    }
+
+    const QPoint oldPos = m_unitToPosition.value(unit);
+    const int oldIdx = indexOf(oldPos);
+
+    // 清除旧位置
+    if (oldIdx >= 0) {
+        m_cells[oldIdx] = nullptr;
+    }
+
+    // 占据新位置
+    m_cells[newIdx] = unit;
+    m_unitToPosition[unit] = newPos;
+    unit->setPosition(newPos);
+}
+
 Unit* BoardANDBench::getUnitAt(const QPoint& pos) const // 获取指定位置的单位
 {
     const int idx = indexOf(pos);

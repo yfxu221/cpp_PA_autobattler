@@ -19,6 +19,7 @@ public:
 
     void addUnit(Unit* unit, const QPoint& pos);
     void removeUnit(Unit* unit);
+    void moveUnit(Unit* unit, const QPoint& newPos);
     Unit* getUnitAt(const QPoint& pos) const;
     bool hasUnitAt(const QPoint& pos) const;
 
