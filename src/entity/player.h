@@ -11,6 +11,9 @@ public:
     bool isAlive() const; // 判断玩家是否存活
     void addXp(int amount); // 增加指定数量的经验值，增加玩家的经验
     int maxFieldUnits() const; // 获取玩家在棋盘上可以拥有的最大单位数量，与玩家等级相关
+    void setHp(int hp) { m_hp = hp; } // 设置玩家的生命值
+    void setGold(int gold) { m_gold = gold; } // 设置玩家的金币数量
+    void setXp(int xp) { m_xp = xp; } // 设置玩家的经验值
 
     int gold() const { return m_gold; } // 获取玩家当前的金币数量
     int hp() const { return m_hp; } // 获取玩家当前的生命值

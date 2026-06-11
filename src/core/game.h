@@ -32,6 +32,20 @@ enum class DragStartPlace {
     Bench
 };
 
+struct SettlementInfo {
+    BattleResult result;
+    int playerHpBefore;
+    int playerHpAfter;
+    int playerGoldBefore;
+    int playerGoldAfter;
+    int enemyHpBefore;
+    int enemyHpAfter;
+    int enemyGoldBefore;
+    int enemyGoldAfter;
+    bool isGameOver; // 是否有人 HP ≤ 0
+};
+
+
 
 class Game : public QObject
 {
@@ -57,6 +71,8 @@ public:
     void startPreparation(); // 结算 → 准备（下一回合）
 
     Player* player() { return &m_player; }
+    Player* enemy() { return &m_enemy; }
+    int battleIndex() const { return m_battleIndex; } // 获取当前战斗轮次
 
     int countFieldUnits(Owner owner) const; // 计算当前棋盘上单位的数量
     QHash<QString, int> getTraitCounts(Owner owner) const; // 获取指定所有者的羁绊计数
@@ -67,6 +83,7 @@ signals:
     void phaseChanged(GamePhase newPhase);  // 通知 UI 更新
     void stateUpdated(); // 通知 UI 更新状态变化
     void SettlementGUI(); // 通知 UI 显示结算界面
+    void settlementReady(SettlementInfo); // 结算信息准备好，可以显示结算界面
 
 private:
     void createStarterUnitsIfNeeded();
@@ -110,6 +127,8 @@ private:
     QList<Unit*> m_battleUnits; // 当前参战单位（仅棋盘上的单位），传给BattleSystem
 
     int m_battleIndex = 0; // 战斗回合计数器，记录当前是第几轮战斗
+
+    SettlementInfo m_settlementInfo; // 结算信息，记录战斗结果和状态变化，供结算界面显示
 
     // 各阶段的入口逻辑
     void onBattleStart();

@@ -38,7 +38,7 @@
   {
     "key": "gugugaga",
     "name": "咕咕嘎嘎",
-    "maxHp": 80,
+    "maxHp": 300,
     "atk": 2,
     "range": 1,
     "maxMana": 0,

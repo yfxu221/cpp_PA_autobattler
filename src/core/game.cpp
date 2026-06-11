@@ -435,28 +435,55 @@ void Game::onBattleStart() {
 
 void Game::onBattleFinished(BattleResult result) {
     m_battleSystem->stop();
+    // 记录结算信息，不改变状态
+    m_settlementInfo.result = result; // 记录战斗结果，供结算界面显示
     if(result == BattleResult::Draw){
         // 平局处理
-        m_player.takeDamage(10);
-        m_enemy.takeDamage(10);
-        m_player.addGold(m_battleIndex * 2); // 奖励金币，随战斗回合增加
-        m_enemy.addGold(m_battleIndex * 2);
+        m_settlementInfo.playerHpBefore = m_player.hp();
+        m_settlementInfo.playerHpAfter = m_player.hp() - 10;
+        m_settlementInfo.playerGoldBefore = m_player.gold();
+        m_settlementInfo.playerGoldAfter = m_player.gold() + m_battleIndex * 2;
+        m_settlementInfo.enemyHpBefore = m_enemy.hp();
+        m_settlementInfo.enemyHpAfter = m_enemy.hp() - 10;
+        m_settlementInfo.enemyGoldBefore = m_enemy.gold();
+        m_settlementInfo.enemyGoldAfter = m_enemy.gold() + m_battleIndex * 2;
+        m_settlementInfo.isGameOver = (m_settlementInfo.playerHpAfter <= 0 || m_settlementInfo.enemyHpAfter <= 0);
     }
-    else{
-        Player& winner = (result == BattleResult::PlayerWin) ? m_player : m_enemy;
-        Player& loser = (result == BattleResult::PlayerWin) ? m_enemy : m_player;
+    else if(result == BattleResult::PlayerWin) {
         // 处理winner和loser
-        loser.takeDamage(10+m_battleIndex*5); // 失败方受到伤害
-        winner.addGold(m_battleIndex * 5); // 胜利方获得金币，随战斗回合增加
-        loser.addGold(m_battleIndex); // 失败方获得少量金币，随战斗回合增加
+        m_settlementInfo.playerHpBefore = m_player.hp();
+        m_settlementInfo.playerHpAfter = m_player.hp();
+        m_settlementInfo.playerGoldBefore = m_player.gold();
+        m_settlementInfo.playerGoldAfter = m_player.gold() + m_battleIndex * 5;
+        m_settlementInfo.enemyHpBefore = m_enemy.hp();
+        m_settlementInfo.enemyHpAfter = m_enemy.hp() - 10 - m_battleIndex * 5;
+        m_settlementInfo.enemyGoldBefore = m_enemy.gold();
+        m_settlementInfo.enemyGoldAfter = m_enemy.gold() + m_battleIndex;
+        m_settlementInfo.isGameOver = (m_settlementInfo.enemyHpAfter <= 0);
     }
-    emit stateUpdated();
+    else if(result == BattleResult::EnemyWin) { 
+        m_settlementInfo.playerHpBefore = m_player.hp();
+        m_settlementInfo.playerHpAfter = m_player.hp() - 10 - m_battleIndex * 5;
+        m_settlementInfo.playerGoldBefore = m_player.gold();
+        m_settlementInfo.playerGoldAfter = m_player.gold() + m_battleIndex;
+        m_settlementInfo.enemyHpBefore = m_enemy.hp();
+        m_settlementInfo.enemyHpAfter = m_enemy.hp();
+        m_settlementInfo.enemyGoldBefore = m_enemy.gold();
+        m_settlementInfo.enemyGoldAfter = m_enemy.gold() + m_battleIndex * 5;
+        m_settlementInfo.isGameOver = (m_settlementInfo.playerHpAfter <= 0);
+    }
     startSettlement(); // 进入结算阶段
     
 }
 
 void Game::onSettlementStart() {
     // 待填充
+    m_player.setHp(m_settlementInfo.playerHpAfter);
+    m_player.setGold(m_settlementInfo.playerGoldAfter);
+    m_enemy.setHp(m_settlementInfo.enemyHpAfter);
+    m_enemy.setGold(m_settlementInfo.enemyGoldAfter);
+    emit settlementReady(m_settlementInfo); // 通知 UI 结算信息准备好，可以显示结算界面
+    emit stateUpdated();
 }
 
 void Game::onPreparationStart() {

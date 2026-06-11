@@ -28,7 +28,8 @@ file(GLOB_RECURSE HEADERS
 
 add_executable(Synera_Starter ${SOURCES} ${HEADERS}
     src/core/pathfinder.cpp
-    src/core/battlesystem.cpp)
+    src/core/battlesystem.cpp
+    src/gui/settlementdialog.cpp)
 
 target_include_directories(Synera_Starter PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
