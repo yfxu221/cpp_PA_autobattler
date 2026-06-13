@@ -75,6 +75,7 @@ bool UnitData::load(const QString& jsonPath)
         temp.sprite = object.value("sprite").toString();
         temp.attackCooldown = object.value("attackCooldown").toInt();
         temp.speed = object.value("speed").toInt();
+        temp.price = object.value("price").toInt();
 
         const QJsonValue traitsValue = object.value("traits");
         if (traitsValue.isArray()) {
@@ -97,7 +98,7 @@ bool UnitData::load(const QString& jsonPath)
     return true;
 }
 
-Unit* UnitData::createUnit(const QString& key, Owner owner, int starLevel) const
+std::unique_ptr<Unit> UnitData::createUnit(const QString& key, Owner owner, int starLevel) const
 {
     const auto it = m_templates.constFind(key);
     if (it == m_templates.constEnd()) {
@@ -106,8 +107,9 @@ Unit* UnitData::createUnit(const QString& key, Owner owner, int starLevel) const
     }
 
     const UnitTemplate& temp = it.value();
-    return new Unit(temp.name, temp.maxHp, temp.atk, temp.range, temp.maxMana,
-                    starLevel, temp.speed, temp.traits, owner, temp.sprite, temp.attackCooldown);
+    return std::make_unique<Unit>(temp.name, temp.maxHp, temp.atk, temp.range, temp.maxMana,
+                                  starLevel, temp.speed, temp.traits, owner, temp.sprite,
+                                  temp.attackCooldown, temp.price);
 }
 
 QList<QString> UnitData::allKeys() const

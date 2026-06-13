@@ -2,9 +2,11 @@
 #include "entity/unit.h"
 #include "gui/griditem.h"
 #include "gui/unititem.h"
+#include "gui/storerefreshbutton.h"
 #include <QGraphicsScene>
 #include <QtMath>
 #include "entity/unitdata.h"
+#include <cstdlib>
 
 namespace {
 constexpr qreal kZGrid = 0.0; // 网格z坐标
@@ -33,14 +35,14 @@ Game::Game(QObject* parent)
 
 Game::~Game()
 {
-    qDeleteAll(m_units);
-    m_units.clear();
+    // unique_ptr 自动析构，无需手动清理
 }
 
 void Game::initialize()
 {
     createStarterUnitsIfNeeded();
     buildScene();
+    buildStoreScene();
     reset();
 }
 
@@ -58,7 +60,7 @@ void Game::reset()
     };
 
     for (int i = 0; i < m_units.size() && i < 4; ++i) {
-        m_board.addUnit(m_units.at(i), initialPositions[i]);
+        m_board.addUnit(m_units.at(i).get(), initialPositions[i]);
     }
 
     syncFromBoard();
@@ -133,7 +135,7 @@ void Game::handleDropCommand(int unitId, const QPoint& sourceGrid, const QPointF
 
 void Game::createStarterUnitsIfNeeded()
 {
-    if (!m_units.isEmpty()) {
+    if (!m_units.empty()) {
         return;
     }
 
@@ -143,9 +145,9 @@ void Game::createStarterUnitsIfNeeded()
     }
 
     auto tryAppend = [this](UnitData* data, const QString& key, Owner owner, int starLevel = 1) {
-        Unit* u = data->createUnit(key, owner, starLevel);
+        auto u = data->createUnit(key, owner, starLevel);
         if (u) {
-            m_units.append(u);
+            m_units.push_back(std::move(u));
         } else {
             qWarning() << "创建单位失败，key:" << key;
         }
@@ -159,9 +161,9 @@ void Game::createStarterUnitsIfNeeded()
 
 Unit* Game::findUnitById(int unitId) const
 {
-    for (Unit* unit : m_units) {
-        if (unit && unit->id() == unitId) {
-            return unit;
+    for (const auto& uptr : m_units) {
+        if (uptr && uptr->id() == unitId) {
+            return uptr.get();
         }
     }
     return nullptr;
@@ -282,12 +284,12 @@ void Game::buildScene() // 根据当前棋盘状态构建图形场景，创建Gr
         }
     }    
 
-    for (Unit* unit : m_units) {
-        UnitItem* unitItem = new UnitItem(unit);
+    for (const auto& uptr : m_units) {
+        UnitItem* unitItem = new UnitItem(uptr.get());
         unitItem->setZValue(kZUnit);
         m_scene->addItem(unitItem); // 把单位项添加到场景中
         m_unitItems.push_back(unitItem);
-        m_unitItemById[unit->id()] = unitItem;
+        m_unitItemById[uptr->id()] = unitItem;
 
         connect(unitItem, &UnitItem::dragStarted,
                 this, &Game::handleDragStarted);
@@ -296,8 +298,7 @@ void Game::buildScene() // 根据当前棋盘状态构建图形场景，创建Gr
         connect(unitItem, &UnitItem::dragDropped,
                 this, &Game::handleDropCommand);
     }
-
-    m_scene->setSceneRect(totalBounds.adjusted(-25, -25, 25, 25));
+    m_scene->setSceneRect(m_scene->itemsBoundingRect().adjusted(-20, -20, 20, 20));
 }
 
 void Game::syncFromBoard() // 根据棋盘状态更新所有单位图形项的位置和可见性
@@ -425,11 +426,18 @@ void Game::onBattleStart() {
     }
     // 只让棋盘上的单位参战，备战席单位不参与寻路和羁绊计算
     m_battleUnits.clear();
-    for (Unit* unit : m_units) {
-        if (unit->isAlive() && m_board.isBoardPosition(unit->position())) {
-            m_battleUnits.append(unit);
+    for (const auto& uptr : m_units) {
+        if (uptr->isAlive() && m_board.isBoardPosition(uptr->position())) {
+            m_battleUnits.append(uptr.get());
         }
     }
+    // 保存当前单位快照，用于战斗结束后恢复
+    m_unitsSnapshot.clear();
+    for (const auto& uptr : m_units) {
+        m_unitsSnapshot.push_back(uptr->clone());
+    }
+
+    // 启动战斗
     m_battleSystem->start(m_board, m_battleUnits, &m_player, &m_enemy);
 }
 
@@ -487,7 +495,49 @@ void Game::onSettlementStart() {
 }
 
 void Game::onPreparationStart() {
-    // 待填充
+    // 移除旧的 UnitItem
+    for (UnitItem* item : m_unitItems) {
+        if (item) {
+            m_scene->removeItem(item);
+            delete item;
+        }
+    }
+    m_unitItems.clear();
+    m_unitItemById.clear();
+
+    m_board.clear();
+
+    // 从快照恢复 m_units
+    m_units.clear();
+    for (const auto& uptr : m_unitsSnapshot) {
+        m_units.push_back(uptr->clone());
+    }
+
+    for (const auto& uptr : m_units) {
+        const QPoint pos = uptr->position();
+        if (m_board.isValidPosition(pos)) {
+            m_board.addUnit(uptr.get(), pos);
+        }
+    }
+
+    // 为恢复的单位创建新的 UnitItem
+    for (const auto& uptr : m_units) {
+        UnitItem* unitItem = new UnitItem(uptr.get());
+        unitItem->setZValue(kZUnit);
+        m_scene->addItem(unitItem);
+        m_unitItems.push_back(unitItem);
+        m_unitItemById[uptr->id()] = unitItem;
+
+        connect(unitItem, &UnitItem::dragStarted,
+                this, &Game::handleDragStarted);
+        connect(unitItem, &UnitItem::dragMoved,
+                this, &Game::handleDragMoved);
+        connect(unitItem, &UnitItem::dragDropped,
+                this, &Game::handleDropCommand);
+    }
+
+    syncFromBoard();
+    emit stateUpdated();
 }
 
 
@@ -524,4 +574,99 @@ void Game::buyXp(int amount) {
     m_player.addXp(amount);
     m_player.spendGold(amount); // 1:1兑换
     emit stateUpdated(); // 通知 UI 更新状态变化
+}
+
+void Game::populateStore() {
+    UnitData* data = UnitData::instance();
+    QStringList keys = data->allKeys();
+    if (keys.isEmpty()) return;
+
+    for (int i = 0; i < Store::STORE_SIZE; ++i) {
+        QString key = keys[rand() % keys.size()];
+        int star = (rand() % 3) + 1;  // 1~3 星，后续根据 m_store.level() 调整概率
+        auto u = data->createUnit(key, Owner::PlayerCtrl, star);
+        if (u) {
+            m_store.addUnit(std::move(u), i);
+        }
+    }
+}
+
+void Game::buildStoreScene() {
+    // 初始化随机单位
+    populateStore();
+
+    // Store 自己管理显示
+    m_store.buildDisplay(m_scene, m_radius);
+
+    // Game 只连信号
+    for (int i = 0; i < Store::STORE_SIZE; ++i) {
+        connect(m_store.slotItem(i), &StoreSlotItem::clicked,
+                this, &Game::onStoreSlotClicked);
+    }
+    connect(m_store.refreshButton(), &StoreRefreshButton::clicked,
+            this, &Game::refreshStore);
+
+    // 更新 scene rect
+    m_scene->setSceneRect(m_scene->itemsBoundingRect().adjusted(-20, -20, 20, 20));
+}
+void Game::onStoreSlotClicked(int index) {
+    if (m_phase != GamePhase::Preparation) return;
+    if (index < 0 || index >= Store::STORE_SIZE) return;
+    Unit* unit = m_store.getUnitAt(index);
+    if (!unit) return; // 没有单位
+
+    int price = unit->price();
+    if (!m_player.canAfford(price)) return; // 钱不够
+
+    QPoint benchPos = findEmptyBenchSlot();
+    if (benchPos == QPoint(-1, -1)) return; // 没有空位
+
+    auto boughtUnitPtr = m_store.buyUnit(index);
+    if (!boughtUnitPtr) return; // 购买失败
+    Unit* boughtUnit = boughtUnitPtr.get();
+
+    m_player.spendGold(price); // 扣钱
+
+    m_board.addUnit(boughtUnit, benchPos); // 放到备战区
+    m_units.push_back(std::move(boughtUnitPtr));
+    UnitItem* item = new UnitItem(boughtUnit);
+    item->setZValue(kZUnit);
+    m_scene->addItem(item);
+    m_unitItems.push_back(item);
+    m_unitItemById[boughtUnit->id()] = item;
+
+    connect(item, &UnitItem::dragStarted, this, &Game::handleDragStarted);
+    connect(item, &UnitItem::dragMoved,  this, &Game::handleDragMoved);
+    connect(item, &UnitItem::dragDropped,this, &Game::handleDropCommand);
+
+    syncFromBoard(); // 更新界面
+    emit stateUpdated(); // 通知 UI 更新状态变化
+}
+
+QPoint Game::findEmptyBenchSlot() const {
+    for (int row = m_board_rows; row < m_board_rows + m_bench_rows; ++row) {
+        for (int col = 0; col < m_bench_cols; ++col) {
+            if (!m_board.hasUnitAt(QPoint(col, row))) {
+                return QPoint(col, row);
+            }
+        }
+    }
+    return QPoint(-1, -1); // 没有空位
+}
+
+void Game::refreshStore() {
+    if (m_phase != GamePhase::Preparation) return;
+
+    // 费用
+    constexpr int kRefreshCost = 2;
+    if (!m_player.canAfford(kRefreshCost)) return;
+
+    // 清空旧单位，随机生成 5 个新单位
+    m_store.refresh();
+    populateStore();
+
+    // 更新显示
+    m_store.refreshDisplay();
+    m_player.spendGold(kRefreshCost);
+    emit stateUpdated();
 }

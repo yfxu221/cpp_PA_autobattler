@@ -1,4 +1,5 @@
 #include "unit.h"
+#include <cmath>
 
 QColor traitColor(const QString& trait) {
     static QHash<QString, QColor> colorMap = {
@@ -11,7 +12,7 @@ QColor traitColor(const QString& trait) {
 
 int Unit::s_nextId = 0; // 静态成员变量初始化，确保每个单位都有一个唯一的ID，从0开始递增
 
-Unit::Unit(const QString& name, int maxHp, int atk, int range, int maxMana, int starLevel, int speed, const QSet<QString>& traits, Owner owner, const QString& spritePath, int attackCooldown)
+Unit::Unit(const QString& name, int maxHp, int atk, int range, int maxMana, int starLevel, int speed, const QSet<QString>& traits, Owner owner, const QString& spritePath, int attackCooldown, int price)
     : m_id(s_nextId++)
     , m_name(name)
     , m_position(0, 0)
@@ -28,6 +29,7 @@ Unit::Unit(const QString& name, int maxHp, int atk, int range, int maxMana, int 
     , m_traits(traits)
     , m_spritePath(spritePath)
     , m_attackCooldown(attackCooldown)
+    , m_price(price)
 {}
 
 int Unit::atk() const
@@ -45,4 +47,9 @@ void Unit::processCooldown()
 void Unit::resetCooldown()
 {
     m_currentCooldown = m_attackCooldown;
+}
+
+int Unit::price() const
+{
+    return m_price * std::pow(3, m_starLevel - 1) - m_starLevel + 1; // 价格随星级翻倍
 }

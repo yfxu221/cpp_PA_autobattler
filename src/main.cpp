@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
 
     GameWindow window;
     window.setWindowTitle("Synera - Starter");
-    window.resize(1200, 850);
+    window.resize(1400, 850);
     window.show();
 
     return app.exec();

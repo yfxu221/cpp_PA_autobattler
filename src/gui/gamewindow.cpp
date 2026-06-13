@@ -97,7 +97,7 @@ void GameWindow::refreshInfoBar()
     // ---- 敌方 ----
     m_enemyLevelLabel->setText(QString("等级: %1").arg(e->level()));
     m_enemyHpLabel->setText(hpText(e->hp(), e->maxHp()));
-    m_enemyGoldLabel->setText(QString("金币: <span style='color:#ffcc00;'>%1</span>").arg(e->gold()));
+    m_enemyGoldLabel->setText(QString("金币💰: <span style='color:#ffcc00;'>%1</span>").arg(e->gold()));
     m_enemyFieldLabel->setText(QString("场上: %1/%2")
         .arg(m_game->countFieldUnits(EnemyCtrl)).arg(e->maxFieldUnits()));
     m_enemyTraitLabel->setText(traitHtml(m_game->getTraitCounts(EnemyCtrl)));
@@ -107,7 +107,7 @@ void GameWindow::refreshInfoBar()
     m_playerXpLabel->setText(QString("经验: <span style='color:#66cccc;'>%1/%2</span>")
         .arg(p->xp()).arg(p->xpToNext()));
     m_playerHpLabel->setText(hpText(p->hp(), p->maxHp()));
-    m_playerGoldLabel->setText(QString("金币: <span style='color:#ffcc00;'>%1</span>").arg(p->gold()));
+    m_playerGoldLabel->setText(QString("金币💰: <span style='color:#ffcc00;'>%1</span>").arg(p->gold()));
     m_playerFieldLabel->setText(QString("场上: %1/%2")
         .arg(m_game->countFieldUnits(PlayerCtrl)).arg(p->maxFieldUnits()));
     m_playerTraitLabel->setText(traitHtml(m_game->getTraitCounts(PlayerCtrl)));

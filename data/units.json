@@ -9,7 +9,8 @@
     "traits": ["神"],
     "sprite": "assets/white_e/normal/white_e_normal.png",
     "attackCooldown": 2,
-    "speed": 20
+    "speed": 20,
+    "price": 3
   },
   {
     "key": "black_e",
@@ -21,7 +22,8 @@
     "traits": ["神"],
     "sprite": "assets/black_e/normal/black_e_normal.png",
     "attackCooldown": 1,
-    "speed":25
+    "speed":25,
+    "price": 4
   },
   {
     "key": "lingsha",
@@ -33,7 +35,8 @@
     "traits": ["神", "区"],
     "sprite": "assets/.../Satyr_01/.../Satyr_01_Idle_000.png",
     "attackCooldown": 3,
-    "speed": 10
+    "speed": 10,
+    "price": 5
   },
   {
     "key": "gugugaga",
@@ -45,7 +48,8 @@
     "traits": ["人"],
     "sprite": "assets/gugugaga/normal/gugugaga_normal.png",
     "attackCooldown": 2,
-    "speed":30
+    "speed":30,
+    "price": 6
   },
   {
     "key": "hihihihi",
@@ -57,6 +61,7 @@
     "traits": ["人"],
     "sprite": "assets/hihihihi/normal/hihihihi_normal.png",
     "attackCooldown": 2,
-    "speed": 40
+    "speed": 40,
+    "price": 2
   }
 ]

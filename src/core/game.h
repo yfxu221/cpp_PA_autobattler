@@ -8,11 +8,14 @@
 #include <QPolygonF>
 #include <QHash>
 #include <QString>
+#include <memory>
 #include <unordered_map>
 #include <vector>
 #include "board.h"
 #include "entity/player.h"
 #include "battlesystem.h"
+#include "store.h"
+#include "gui/storeslotitem.h"
 
 class Unit;
 class QGraphicsScene;
@@ -78,6 +81,7 @@ public:
     QHash<QString, int> getTraitCounts(Owner owner) const; // 获取指定所有者的羁绊计数
     int playerMaxFieldUnits() const { return m_player.maxFieldUnits(); } // 获取玩家在棋盘上可以拥有的最大单位数量
     void buyXp(int amount); // 玩家购买经验，增加经验值
+    void refreshStore(); // 刷新商店，生成新的单位列表
 
 signals:
     void phaseChanged(GamePhase newPhase);  // 通知 UI 更新
@@ -95,13 +99,16 @@ private:
     void applyDrop(int unitId, const QPoint& target);
     void buildScene();
     void syncFromBoard();
+    void buildStoreScene();
+    void populateStore(); // 随机填充商店 5 个单位（共享的随机生成逻辑）
 
     QPointF gridToWorld(int row, int col) const;
     QPoint worldToGrid(const QPointF& world) const;
     QPolygonF cellHexPolygon(int row, int col) const;
 
     BoardANDBench m_board; // 棋盘和备战区对象，管理单位的状态和位置
-    QList<Unit*> m_units; // 存储所有单位的指针，方便访问和管理
+    Store m_store; // 商店对象
+    std::vector<std::unique_ptr<Unit>> m_units; // 拥有所有场上单位（棋盘+备战席）的所有权
 
     QGraphicsScene* m_scene;
     std::vector<GridItem*> m_gridItems; // 存储格子项的指针，方便访问和管理
@@ -130,11 +137,17 @@ private:
 
     SettlementInfo m_settlementInfo; // 结算信息，记录战斗结果和状态变化，供结算界面显示
 
+    std::vector<std::unique_ptr<Unit>> m_unitsSnapshot; // 战斗开始前的单位快照，用于战斗结束后恢复
+
     // 各阶段的入口逻辑
     void onBattleStart();
     void onSettlementStart();
     void onPreparationStart();
     void onBattleFinished(BattleResult result);
+
+    void onStoreSlotClicked(int index); // 商店格子被点击，index表示格子编号
+
+    QPoint findEmptyBenchSlot() const; // 查找备战区的空位，返回空位的网格坐标，如果没有空位则返回(-1, -1)
 
 };
 

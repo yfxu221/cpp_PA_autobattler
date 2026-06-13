@@ -287,7 +287,7 @@ BattleResult BattleSystem::checkEndCondition()
 QList<Unit*> BattleSystem::getUnitsByOwner(Owner owner) const {
     QList<Unit*> result;
     for (Unit* unit : *m_units) {
-        if (unit->owner() == owner) {
+        if (unit->owner() == owner && unit->isAlive()) {
             result.append(unit);
         }
     }
