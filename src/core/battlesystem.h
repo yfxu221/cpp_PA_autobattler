@@ -65,9 +65,12 @@ private:
     void makeMove(Unit* unit, const QPoint& targetPos);
     void attackAction(QList<PlannedAction>& actions);
     void makeAttack(Unit* attacker, const QSet<Unit*>& targets);
+    void skillAction(QList<PlannedAction>& actions);
+    void makeSkill(Unit* caster, const QVector<Unit*>& allUnits);
 
     QList<Unit*> getUnitsByOwner(Owner owner) const;
     QSet<QPoint> getOccupiedPositions() const;
+    QVector<Unit*> getBoardUnits() const;
 
     BoardANDBench* m_board = nullptr;
     QList<Unit*>* m_units = nullptr;

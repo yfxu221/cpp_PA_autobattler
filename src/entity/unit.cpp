@@ -21,7 +21,7 @@ Unit::Unit(const QString& name, int maxHp, int atk, int range, int maxMana, int 
     , m_atk(atk)
     , m_range(range)
     , m_maxMana(maxMana)
-    , m_mana(maxMana)
+    , m_mana(0)
     , m_owner(owner)
     , m_speed(speed)
     , m_state(UnitState::Idle)
@@ -52,4 +52,9 @@ void Unit::resetCooldown()
 int Unit::price() const
 {
     return m_price * std::pow(3, m_starLevel - 1) - m_starLevel + 1; // 价格随星级翻倍
+}
+
+void Unit::addSkill(std::shared_ptr<Skill> skill)
+{
+    m_skill = skill;
 }

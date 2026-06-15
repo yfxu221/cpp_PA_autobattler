@@ -1,0 +1,45 @@
+[
+    {
+        "key": "execute",
+        "strategy": "SingleTargeted",
+        "name": "处决",
+        "manaCost": 40,
+        "params": {
+            "targetType": "Enemy",
+            "selectType": "HighestAtk",
+            "valueType": "HpRatio",
+            "castRange": 3,
+            "ratio": 0.6
+        }
+    },
+    {
+        "key": "cleave",
+        "strategy": "MultiTargeted",
+        "name": "火球",
+        "manaCost": 30,
+        "params": {
+            "targetType": "Enemy",
+            "selectType": "Nearest",
+            "valueType": "splash",
+            "castRange": 5,
+            "value": 60,
+            "splashRatio": 0.5,
+            "areaCenter": "Target",
+            "areaRange": 1
+        }
+    },
+    {
+        "key": "groupHeal",
+        "strategy": "MultiTargeted",
+        "name": "群体治疗",
+        "manaCost": 30,
+        "params": {
+            "targetType": "Ally",
+            "valueType": "HpRatio",
+            "castRange": 5,
+            "ratio": 0.5,
+            "areaCenter": "Caster",
+            "areaRange": 2
+        }
+    }
+]

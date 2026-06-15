@@ -139,6 +139,11 @@ void Game::createStarterUnitsIfNeeded()
         return;
     }
 
+
+    SkillRegistry::instance(); // 加载技能
+    if (!SkillRegistry::instance()->load("")) {
+        qFatal("无法加载技能数据文件");
+    }
     UnitData* unitData = UnitData::instance();
     if (!unitData->load("")) {
         qFatal("无法加载单位数据文件");

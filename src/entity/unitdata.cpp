@@ -7,6 +7,7 @@
 #include <QCoreApplication>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include "skillregistry.h"
 
 
 UnitData* UnitData::instance()
@@ -76,6 +77,7 @@ bool UnitData::load(const QString& jsonPath)
         temp.attackCooldown = object.value("attackCooldown").toInt();
         temp.speed = object.value("speed").toInt();
         temp.price = object.value("price").toInt();
+        temp.skill = object.value("skill").toString();
 
         const QJsonValue traitsValue = object.value("traits");
         if (traitsValue.isArray()) {
@@ -107,9 +109,17 @@ std::unique_ptr<Unit> UnitData::createUnit(const QString& key, Owner owner, int 
     }
 
     const UnitTemplate& temp = it.value();
-    return std::make_unique<Unit>(temp.name, temp.maxHp, temp.atk, temp.range, temp.maxMana,
+    std::unique_ptr<Unit> unit = std::make_unique<Unit>(temp.name, temp.maxHp, temp.atk, temp.range, temp.maxMana,
                                   starLevel, temp.speed, temp.traits, owner, temp.sprite,
                                   temp.attackCooldown, temp.price);
+    if (!temp.skill.isEmpty()) {
+    auto skill = SkillRegistry::instance()->createSkill(temp.skill);
+    if (skill)
+        unit->addSkill(std::move(skill));
+    else
+        qWarning() << "Unit" << key << ": skill not found:" << temp.skill;
+    }
+    return unit;
 }
 
 QList<QString> UnitData::allKeys() const

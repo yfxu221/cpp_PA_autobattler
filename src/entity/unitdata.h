@@ -12,7 +12,7 @@ struct UnitTemplate {  // JSON 反序列化后的结构体
     QString key, name;
     int maxHp, atk, range, maxMana, attackCooldown, speed, price;
     QSet<QString> traits;
-    QString sprite;
+    QString sprite, skill;
 };
 
 class UnitData { // 单位数据管理类，负责加载单位数据、创建单位实例等功能

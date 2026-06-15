@@ -16,6 +16,7 @@
 #include "battlesystem.h"
 #include "store.h"
 #include "gui/storeslotitem.h"
+#include "entity/skillregistry.h"
 
 class Unit;
 class QGraphicsScene;

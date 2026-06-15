@@ -1,5 +1,6 @@
 #include "battlesystem.h"
 #include <algorithm>
+#include "entity/skill.h"
 
 // ============================================================
 // 匿名命名空间 — 辅助函数，仅在当前翻译单元可见
@@ -141,6 +142,13 @@ PlannedAction BattleSystem::decideAction(Unit* unit) {
         return {unit, QPoint(-1,-1), {}};
     }
 
+    // 优先释放技能
+    QVector<TargetInfo> info = unit->hasSkill() ? unit->skill()->selectTargets(*unit, getBoardUnits()) : QVector<TargetInfo>(); 
+    if (unit->canUseSkill() && !info.isEmpty()) {
+        unit->setState(UnitState::Casting);
+        return {unit, QPoint(-1, -1), {}}; // 技能的目标信息会在 makeSkill 里通过 skill()->execute() 获取，这里不需要提前放在 PlannedAction 里
+    }
+
     Unit* target = selectTarget(unit, getUnitsByOwner(unit->owner() == PlayerCtrl ? EnemyCtrl : PlayerCtrl));
     if(target == nullptr) {
         unit->setState(UnitState::Idle);
@@ -158,7 +166,6 @@ PlannedAction BattleSystem::decideAction(Unit* unit) {
     // 否则移动到攻击范围内
     else{
         QList<QPoint> path = Pathfinder::findPath(unit->position(), target->position(), unit->range(), getOccupiedPositions(), m_board->BOARD_ROWS, m_board->BOARD_COLS);
-        // path 为空 → 无路可达；path.size()<=1 → 已在攻击范围内（findPath 返回 {start}）
         if(path.isEmpty() || path.size() <= 1) {
             unit->setState(UnitState::Idle);
             return {unit, QPoint(-1,-1), {}};
@@ -170,32 +177,28 @@ PlannedAction BattleSystem::decideAction(Unit* unit) {
 
 void BattleSystem::resolveActions(QList<PlannedAction>& actions) {
     moveAction(actions);
+    skillAction(actions);
     attackAction(actions);
 }
 
 void BattleSystem::moveAction(QList<PlannedAction>& actions)
 {
-    // 1. 收集当前占据位置
     QList<QPoint> occupiedPositions = collectOccupiedPositions(actions);
 
-    // 2. 筛选出移动单位，按优先级排序
     QList<PlannedAction> moveActions;
     std::copy_if(actions.begin(), actions.end(),
                  std::back_inserter(moveActions),
                  [](const auto& a) { return a.unit->state() == UnitState::Moving; });
     std::sort(moveActions.begin(), moveActions.end(), moveActionLess);
 
-    // 3. 按优先级依次执行移动
     for (const auto& action : moveActions) {
         // 先排除当前单位自己的目标标记，判断是否被其他单位占据
         occupiedPositions.removeOne(action.targetPos);
 
         if (!occupiedPositions.contains(action.targetPos)) {
-            // 目标仅被自己标记过 → 直接移动
             makeMove(action.unit, action.targetPos);
             occupiedPositions.append(action.targetPos);
         } else {
-            // 目标确实被其他单位占据 → 收集空闲邻居备选
             QList<QPoint> candidates;
             candidates.append(action.unit->position()); // 原地不动作为兜底
             for (const QPoint& neighbor : Pathfinder::hexNeighbors(action.unit->position())) {
@@ -203,7 +206,6 @@ void BattleSystem::moveAction(QList<PlannedAction>& actions)
                     candidates.append(neighbor);
             }
 
-            // 按离目标位置的距离排序，取最佳备选
             std::sort(candidates.begin(), candidates.end(),
                       [&](const QPoint& a, const QPoint& b) {
                           return fallbackLess(a, b, action.targetPos);
@@ -238,7 +240,31 @@ void BattleSystem::attackAction(QList<PlannedAction>& actions){
 void BattleSystem::makeAttack(Unit* attacker, const QSet<Unit*>& targets) {
     m_pendingDamageEvents.append({attacker, targets, attacker->atk()});
     attacker->resetCooldown();
+    attacker->setMana(std::min(attacker->maxMana(), attacker->mana() + 5)); // 每次攻击增加5点法力值
 }
+
+void BattleSystem::skillAction(QList<PlannedAction>& actions) {
+    QList<PlannedAction> skillActions;
+    std::copy_if(actions.begin(), actions.end(),
+                 std::back_inserter(skillActions),
+                 [](const auto& a) { return a.unit->state() == UnitState::Casting; });
+
+    for (const auto& action : skillActions) {
+        makeSkill(action.unit, getBoardUnits());
+    }
+}
+
+void BattleSystem::makeSkill(Unit* caster, const QVector<Unit*>& allUnits) {
+    const auto& skill = caster->skill();
+    if (!skill) return;
+    SkillResult skillResult = skill->execute(*caster, allUnits);
+    if (!skillResult.success) return;
+    for (const auto& hit : skillResult.hits) {
+        m_pendingDamageEvents.append({caster, {hit.target}, -hit.value}); // HitInfo.value 正数=治疗量, 负数=伤害量
+    }
+    caster->setMana(0); // 使用技能后法力值归零
+}
+
 
 void BattleSystem::resolveDamage() {
     for (const auto& event : m_pendingDamageEvents) {
@@ -302,4 +328,14 @@ QSet<QPoint> BattleSystem::getOccupiedPositions() const {
         }
     }
     return occupied;
+}
+
+QVector<Unit*> BattleSystem::getBoardUnits() const {
+    QVector<Unit*> boardUnits;
+    for (Unit* unit : *m_units) {
+        if (unit->isAlive() && m_board->isBoardPosition(unit->position())) {
+            boardUnits.append(unit);
+        }
+    }
+    return boardUnits;
 }

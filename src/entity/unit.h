@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <memory>
 #include <QColor>
+#include "skill.h"
 
 enum Owner{
     PlayerCtrl,
@@ -74,6 +75,11 @@ public:
 
     std::unique_ptr<Unit> clone() const { return std::make_unique<Unit>(*this); }
 
+    void addSkill(std::shared_ptr<Skill> skill); // 添加技能
+    const std::shared_ptr<Skill>& skill() const {return m_skill;} // 获取单位的技能
+    bool hasSkill() const { return m_skill != nullptr; } // 检查单位是否拥有技能
+    bool canUseSkill() const {return hasSkill() && m_mana >= m_maxMana;} // 检查单位是否可以使用技能（拥有技能且法力值足够）
+
 private:
     static int s_nextId; // 静态成员变量，用于生成唯一的单位ID，每创建一个单位，s_nextId就会递增，确保每个单位都有一个独特的ID
 
@@ -95,6 +101,7 @@ private:
     int m_currentCooldown = 0; // 当前剩余的冷却时间，单位为tick数
     int m_speed; //单位速度，影响移动优先级
     int m_price; //单位价格
+    std::shared_ptr<Skill> m_skill; // 单位的技能，暂时假设每个单位只有一个技能
 
 };
 
