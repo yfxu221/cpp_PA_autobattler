@@ -65,8 +65,8 @@ QVector<TargetInfo> MultiTargetedSkill::selectTargets(
             bool valid = false;
             switch (m_p.targetType) {
             case TargetType::Enemy: valid = (u->owner() != caster.owner()); break;
-            case TargetType::Ally:  valid = (u->owner() == caster.owner() && u != &caster); break;
-            case TargetType::Self:  valid = (u == &caster); break;
+            case TargetType::Ally:
+            case TargetType::Self:valid = (u->owner() == caster.owner()); break;
             }
             if (!valid) continue;
             if (Pathfinder::hexDistance(caster.position(), u->position()) <= m_p.areaRange)
@@ -89,8 +89,7 @@ QVector<TargetInfo> MultiTargetedSkill::selectTargets(
     case TargetType::Ally:
     case TargetType::Self:
         std::copy_if(inCastRange.begin(), inCastRange.end(), std::back_inserter(candidates),
-                     [&](Unit* u) { return u->owner() == caster.owner() && u != &caster; });
-        candidates.push_back(const_cast<Unit*>(&caster));
+                     [&](Unit* u) { return u->owner() == caster.owner(); });
         break;
     }
 
@@ -120,8 +119,8 @@ QVector<TargetInfo> MultiTargetedSkill::selectTargets(
         bool valid = false;
         switch (m_p.targetType) {
         case TargetType::Enemy: valid = (u->owner() != caster.owner()); break;
-        case TargetType::Ally:  valid = (u->owner() == caster.owner() && u != &caster); break;
-        case TargetType::Self:  valid = (u == &caster); break;
+        case TargetType::Ally:
+        case TargetType::Self: valid = (u->owner() == caster.owner()); break;
         }
         if (!valid) continue;
         if (Pathfinder::hexDistance(center->position(), u->position()) <= m_p.areaRange)

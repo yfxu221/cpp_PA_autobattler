@@ -5,7 +5,7 @@
     "maxHp": 45,
     "atk": 7,
     "range": 3,
-    "maxMana": 10,
+    "maxMana": 100,
     "traits": ["神"],
     "sprite": "assets/white_e/normal/white_e_normal.png",
     "attackCooldown": 2,

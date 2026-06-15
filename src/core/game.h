@@ -17,6 +17,7 @@
 #include "store.h"
 #include "gui/storeslotitem.h"
 #include "entity/skillregistry.h"
+#include "gui/sellzoneitem.h"
 
 class Unit;
 class QGraphicsScene;
@@ -149,6 +150,12 @@ private:
     void onStoreSlotClicked(int index); // 商店格子被点击，index表示格子编号
 
     QPoint findEmptyBenchSlot() const; // 查找备战区的空位，返回空位的网格坐标，如果没有空位则返回(-1, -1)
+
+    SellZoneItem* m_sellZone = nullptr; // 出售区图形项
+
+    bool isOverSellZone(const QPointF& scenePos) const;
+    void sellUnit(int unitId);
+
 
 };
 

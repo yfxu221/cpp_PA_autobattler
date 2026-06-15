@@ -51,7 +51,7 @@ public:
 
     bool isAlive() const { return m_hp > 0; } // 判断单位是否存活
     bool hasTrait(const QString& trait) const { return m_traits.contains(trait); } // 检查单位是否具有特定的羁绊
-    void takeDamage(int damage) { m_hp = std::max(0, m_hp - damage); } // 受到伤害，减少生命值，但不低于0
+    void takeDamage(int damage) { m_hp = std::clamp(m_hp - damage, 0, m_maxHp); } // 受到伤害，减少生命值，但不低于0
     Owner owner() const { return m_owner; } // 获取单位的所有者，表示是玩家控制还是敌人控制
     int maxHp() const { return m_maxHp; } // 获取单位的最大生命值
     int hp() const { return m_hp; } // 获取单位当前的生命值

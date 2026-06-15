@@ -65,7 +65,6 @@ bool SkillRegistry::load(const QString& jsonPath) { //  加载 skills.json
         def.key = obj["key"].toString();
         def.name = obj["name"].toString();
         def.strategy = obj["strategy"].toString();
-        def.manaCost = obj["manaCost"].toInt(0);
         def.params = obj["params"].toObject();
 
         if (def.key.isEmpty()) {

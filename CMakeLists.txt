@@ -34,7 +34,8 @@ add_executable(Synera_Starter ${SOURCES} ${HEADERS}
     src/gui/storerefreshbutton.cpp
     src/entity/skill.cpp
     src/entity/skills/SingleTargetedSkill.cpp
-    src/entity/skills/MultiTargetedSkill.cpp)
+    src/entity/skills/MultiTargetedSkill.cpp
+    src/gui/sellzoneitem.cpp)
 
 target_include_directories(Synera_Starter PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src

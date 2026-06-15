@@ -95,6 +95,15 @@ void Game::handleDragMoved(int unitId, const QPoint&, const QPointF& scenePos)
 
     clearGridHighlights();
 
+    // 先判断是否在出售区上
+    if (m_sellZone && isOverSellZone(scenePos)) {
+        m_sellZone->setHighlighted(true);
+        return;
+    } else if(m_sellZone){
+        m_sellZone->setHighlighted(false);
+    }
+
+    // 不在出售区上，继续判断是否在棋盘格子上
     const QPoint target = worldToGrid(scenePos);
     GridItem* targetItem = findGridItem(target);
     if (!targetItem) {
@@ -112,6 +121,23 @@ void Game::handleDropCommand(int unitId, const QPoint& sourceGrid, const QPointF
 {
     if (!m_dragActive) {
         return;
+    }
+
+    // 先判断是否拖动到出售区
+    if (isOverSellZone(scenePos)) {
+        sellUnit(unitId);
+        // 清理拖拽状态
+        m_dragActive = false;
+        m_activeUnitId = -1;
+        m_sourceGrid = QPoint(-1, -1);
+        if (m_sellZone) {
+            m_sellZone->setHighlighted(false);
+        }
+        syncFromBoard();
+        return;
+    }
+    if (m_sellZone) {
+        m_sellZone->setHighlighted(false);
     }
 
     const QPoint target = worldToGrid(scenePos);
@@ -251,6 +277,7 @@ void Game::buildScene() // 根据当前棋盘状态构建图形场景，创建Gr
 {   
     // 清除现有场景中的所有项和状态
     m_scene->clear();
+    m_sellZone = nullptr;
     m_gridItems.clear();
     m_unitItems.clear();
     m_unitItemById.clear();
@@ -603,6 +630,10 @@ void Game::buildStoreScene() {
     // Store 自己管理显示
     m_store.buildDisplay(m_scene, m_radius);
 
+    // “出售”
+    m_sellZone = new SellZoneItem(QPointF(-150, 580), 100, 100);
+    m_scene->addItem(m_sellZone);
+
     // Game 只连信号
     for (int i = 0; i < Store::STORE_SIZE; ++i) {
         connect(m_store.slotItem(i), &StoreSlotItem::clicked,
@@ -674,4 +705,35 @@ void Game::refreshStore() {
     m_store.refreshDisplay();
     m_player.spendGold(kRefreshCost);
     emit stateUpdated();
+}
+
+bool Game::isOverSellZone(const QPointF& scenePos) const {
+    if (!m_sellZone) return false;
+    return m_sellZone->sceneBoundingRect().contains(scenePos);
+}
+
+void Game::sellUnit(int unitId) {
+    Unit* unit = findUnitById(unitId);
+    if (!unit) return;
+    if (unit->owner() != Owner::PlayerCtrl) return;
+
+    int refund = unit->price();  // 返还原价
+
+    m_board.removeUnit(unit);
+
+    auto it = std::find_if(m_units.begin(), m_units.end(),
+        [unitId](const auto& u) { return u && u->id() == unitId; });
+    if (it != m_units.end()) {
+        m_units.erase(it);
+    }
+
+    if (auto item = findUnitItem(unitId)) {
+        m_scene->removeItem(item);
+        auto itemIt = std::find(m_unitItems.begin(), m_unitItems.end(), item);
+        if (itemIt != m_unitItems.end()) m_unitItems.erase(itemIt);
+        m_unitItemById.erase(unitId);
+        delete item;
+    }
+
+    m_player.addGold(refund);
 }

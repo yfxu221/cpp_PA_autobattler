@@ -14,7 +14,6 @@ struct SkillDef {
     QString key;
     QString name;
     QString strategy; // 策略名
-    int manaCost = 0; // 释放消耗蓝量（释放判定由 BattleSystem/Unit 用 maxMana 处理）
     QJsonObject params; // 策略专属参数，透传给 XxxParams::fromJson
 };
 
