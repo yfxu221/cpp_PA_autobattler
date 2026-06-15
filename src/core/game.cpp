@@ -4,8 +4,11 @@
 #include "gui/unititem.h"
 #include "gui/storerefreshbutton.h"
 #include <QGraphicsScene>
+#include <QGraphicsPixmapItem>
 #include <QtMath>
 #include "entity/unitdata.h"
+#include "entity/equipmentdata.h"
+#include "gui/equipslotitem.h"
 #include <cstdlib>
 
 namespace {
@@ -47,6 +50,7 @@ void Game::initialize()
     createStarterUnitsIfNeeded();
     buildScene();
     buildStoreScene();
+    buildEquipBar();
     reset();
 }
 
@@ -176,6 +180,10 @@ void Game::createStarterUnitsIfNeeded()
     SkillRegistry::instance(); // 加载技能
     if (!SkillRegistry::instance()->load("")) {
         qFatal("无法加载技能数据文件");
+    }
+    EquipmentRegistry::instance(); // 加载装备
+    if (!EquipmentRegistry::instance()->load("")) {
+        qWarning() << "Game: 加载装备数据失败";
     }
     UnitData* unitData = UnitData::instance();
     if (!unitData->load("")) {
@@ -336,6 +344,8 @@ void Game::buildScene() // 根据当前棋盘状态构建图形场景，创建Gr
                 this, &Game::handleDragMoved);
         connect(unitItem, &UnitItem::dragDropped,
                 this, &Game::handleDropCommand);
+        connect(unitItem, &UnitItem::equipmentUnequipRequested,
+                this, &Game::handleEquipUnequip);
     }
     m_scene->setSceneRect(m_scene->itemsBoundingRect().adjusted(-20, -20, 20, 20));
 }
@@ -576,6 +586,8 @@ void Game::onPreparationStart() {
                 this, &Game::handleDragMoved);
         connect(unitItem, &UnitItem::dragDropped,
                 this, &Game::handleDropCommand);
+        connect(unitItem, &UnitItem::equipmentUnequipRequested,
+                this, &Game::handleEquipUnequip);
     }
 
     recalculateSynergies();
@@ -693,7 +705,7 @@ void Game::buildStoreScene() {
             this, &Game::refreshStore);
 
     // 更新 scene rect
-    m_scene->setSceneRect(m_scene->itemsBoundingRect().adjusted(-20, -20, 20, 20));
+    m_scene->setSceneRect(m_scene->itemsBoundingRect().adjusted(-20, -20, 15, 5)); // 左上右下
 }
 void Game::onStoreSlotClicked(int index) {
     if (m_phase != GamePhase::Preparation) return;
@@ -724,6 +736,8 @@ void Game::onStoreSlotClicked(int index) {
     connect(item, &UnitItem::dragStarted, this, &Game::handleDragStarted);
     connect(item, &UnitItem::dragMoved,  this, &Game::handleDragMoved);
     connect(item, &UnitItem::dragDropped,this, &Game::handleDropCommand);
+    connect(item, &UnitItem::equipmentUnequipRequested,
+            this, &Game::handleEquipUnequip);
 
     tryMergeStar(boughtUnit); // 购买后尝试升星合并
 
@@ -771,6 +785,16 @@ void Game::sellUnit(int unitId) {
     if (unit->owner() != Owner::PlayerCtrl) return;
 
     int refund = unit->price();  // 返还原价
+
+    // 出售前将单位身上的装备返还装备栏
+    if (m_equipBar) {
+        while (unit->equipmentCount() > 0) {
+            auto eq = unit->unequip(0);
+            if (eq) {
+                m_equipBar->addEquipment(eq);
+            }
+        }
+    }
 
     m_board.removeUnit(unit);
 
@@ -850,4 +874,157 @@ void Game::tryMergeStar(Unit* newUnit)
 
     // 递归检查连锁升星
     tryMergeStar(keep);
+}
+
+// ========== 装备栏 ==========
+
+void Game::buildEquipBar()
+{
+    const qreal colSpacing = m_radius * qSqrt(3.0);
+    const qreal boardCenterX = (m_board_cols - 0.5) * colSpacing / 2.0;
+    const qreal benchBottomY = (m_board_rows + m_bench_rows) * m_rowSpacing + m_BBSpacing;
+
+    constexpr int kEquipSlots = 8;
+    constexpr double kSlotSize = 40.0;
+    constexpr double kSlotSpacing = 8.0;
+    const double totalW = kEquipSlots * kSlotSize + (kEquipSlots - 1) * kSlotSpacing;
+    const QPointF topLeft(boardCenterX - totalW / 2.0, benchBottomY + 8.0);
+
+    m_equipBar = new EquipBar();
+    m_equipBar->buildBar(m_scene, topLeft, kEquipSlots, kSlotSize, kSlotSpacing);
+
+    // 测试装备
+    auto& reg = *EquipmentRegistry::instance();
+    m_equipBar->addEquipment(reg.createEquipment("bf_sword"));
+    m_equipBar->addEquipment(reg.createEquipment("giant_belt"));
+    m_equipBar->addEquipment(reg.createEquipment("tear"));
+    m_equipBar->addEquipment(reg.createEquipment("recurve_bow"));
+
+    // 连接拖拽信号
+    for (int i = 0; i < kEquipSlots; ++i) {
+        EquipSlotItem* slot = m_equipBar->slot(i);
+        if (!slot) continue;
+        connect(slot, &EquipSlotItem::equipDragStarted,
+                this, &Game::handleEquipDragStarted);
+        connect(slot, &EquipSlotItem::equipDragMoved,
+                this, &Game::handleEquipDragMoved);
+        connect(slot, &EquipSlotItem::equipDragDropped,
+                this, &Game::handleEquipDropCommand);
+    }
+
+    // 更新 scene rect 以包含装备栏
+    m_scene->setSceneRect(m_scene->itemsBoundingRect().adjusted(-20, -20, 15, 5));
+}
+
+UnitItem* Game::findUnitItemAtScenePos(const QPointF& scenePos) const
+{
+    for (UnitItem* item : m_unitItems) {
+        if (!item || !item->isVisible()) continue;
+        if (item->sceneBoundingRect().contains(scenePos))
+            return item;
+    }
+    return nullptr;
+}
+
+
+void Game::handleEquipDragStarted(int slotIndex, const QPointF& scenePos)
+{
+    if (m_phase != GamePhase::Preparation) return;
+
+    EquipSlotItem* slot = m_equipBar ? m_equipBar->slot(slotIndex) : nullptr;
+    if (!slot || slot->isEmpty()) return;
+
+    m_equipDragActive = true;
+    m_activeEquipSlotIndex = slotIndex;
+    slot->setDraggingOut(true);
+
+    // 创建拖拽幽灵图标
+    auto eq = slot->equipment();
+    QPixmap ghostPix(36, 36);
+    ghostPix.fill(Qt::transparent);
+    {
+        QPainter p(&ghostPix);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setPen(QPen(QColor(180, 180, 200), 2.0));
+        p.setBrush(QColor(80, 80, 100, 180));
+        p.drawRoundedRect(QRectF(2, 2, 32, 32), 5, 5);
+        if (eq && !eq->name.isEmpty()) {
+            p.setPen(Qt::white);
+            QFont f = p.font();
+            f.setPointSize(12);
+            f.setBold(true);
+            p.setFont(f);
+            const QString txt = eq->name.left(1);
+            p.drawText(QRectF(2, 2, 32, 32), static_cast<int>(Qt::AlignCenter), txt);
+        }
+    }
+
+    m_equipDragGhost = new QGraphicsPixmapItem(ghostPix);
+    m_equipDragGhost->setZValue(kZDraggingUnit);
+    m_equipDragGhost->setPos(scenePos - QPointF(18, 18));
+    m_scene->addItem(m_equipDragGhost);
+}
+
+void Game::handleEquipDragMoved(int slotIndex, const QPointF& scenePos)
+{
+    if (!m_equipDragActive) return;
+
+    // 移动幽灵图标
+    if (m_equipDragGhost) {
+        m_equipDragGhost->setPos(scenePos - QPointF(18, 18));
+    }
+}
+
+void Game::handleEquipDropCommand(int slotIndex, const QPointF& scenePos)
+{
+    if (!m_equipDragActive) return;
+
+    // 清理幽灵图标
+    if (m_equipDragGhost) {
+        m_scene->removeItem(m_equipDragGhost);
+        delete m_equipDragGhost;
+        m_equipDragGhost = nullptr;
+    }
+
+    EquipSlotItem* sourceSlot = m_equipBar ? m_equipBar->slot(m_activeEquipSlotIndex) : nullptr;
+    if (sourceSlot) {
+        sourceSlot->setDraggingOut(false);
+    }
+
+    UnitItem* targetUnitItem = findUnitItemAtScenePos(scenePos);
+    if (targetUnitItem && targetUnitItem->unit()
+        && targetUnitItem->unit()->owner() == Owner::PlayerCtrl
+        && targetUnitItem->unit()->canEquip()
+        && sourceSlot && !sourceSlot->isEmpty())
+    {
+        // 执行装备
+        auto eq = m_equipBar->removeEquipment(m_activeEquipSlotIndex);
+        if (eq) {
+            targetUnitItem->unit()->equip(eq);
+        }
+    }
+
+    m_equipDragActive = false;
+    m_activeEquipSlotIndex = -1;
+
+    recalculateSynergies();  // 更新属性加成
+    syncFromBoard();
+    emit stateUpdated();
+}
+
+void Game::handleEquipUnequip(int unitId, int equipIndex)
+{
+    if (m_phase != GamePhase::Preparation) return;
+
+    Unit* unit = findUnitById(unitId);
+    if (!unit || unit->owner() != Owner::PlayerCtrl) return;
+
+    auto eq = unit->unequip(equipIndex);
+    if (eq && m_equipBar) {
+        m_equipBar->addEquipment(eq);
+    }
+
+    recalculateSynergies();
+    syncFromBoard();
+    emit stateUpdated();
 }

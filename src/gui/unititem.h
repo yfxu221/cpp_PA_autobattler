@@ -21,6 +21,7 @@ public:
     void drawAttackValue(QPainter* painter); // 绘制unit攻击力信息
     void drawTraits(QPainter* painter); // 绘制单位所属队伍的指示器
     void drawTeamGlow(QPainter* painter); // 绘制单位所属队伍的光晕效果
+    void drawEquipments(QPainter* painter); // 绘制装备图标（右下角）
 
     Unit* unit() const { return m_unit; } // 获取对应的单位对象
     int unitId() const;
@@ -32,6 +33,7 @@ signals:
     void dragStarted(int unitId, const QPoint& sourceGrid, const QPointF& scenePos);
     void dragMoved(int unitId, const QPoint& sourceGrid, const QPointF& scenePos);
     void dragDropped(int unitId, const QPoint& sourceGrid, const QPointF& scenePos);
+    void equipmentUnequipRequested(int unitId, int equipIndex); // 右键卸装备
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
@@ -41,6 +43,8 @@ protected:
 private:
     void ensureSpriteLoaded() const;
     QString spriteRelativePathForUnit() const;
+    QRectF equipIconRect(int index) const; // 装备图标位置（绘制与点击共用）
+    int hitTestEquipIcon(const QPointF& localPos) const; // 返回被点击的装备索引，-1 表示未命中
 
     Unit* m_unit; // 指向对应的单位对象
     QPoint m_gridPos; // 单位在棋盘上的网格坐标，(row, col)，由Game类在syncFromBoard()中设置

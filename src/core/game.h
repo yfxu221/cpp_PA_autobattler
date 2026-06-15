@@ -19,6 +19,7 @@
 #include "entity/skillregistry.h"
 #include "entity/synergyregistry.h"
 #include "gui/sellzoneitem.h"
+#include "gui/equipbar.h"
 
 class Unit;
 class QGraphicsScene;
@@ -69,6 +70,12 @@ public:
     void handleDragStarted(int unitId, const QPoint& sourceGrid, const QPointF& scenePos);
     void handleDragMoved(int unitId, const QPoint& sourceGrid, const QPointF& scenePos);
     void handleDropCommand(int unitId, const QPoint& sourceGrid, const QPointF& scenePos);
+
+    // 装备拖拽
+    void handleEquipDragStarted(int slotIndex, const QPointF& scenePos);
+    void handleEquipDragMoved(int slotIndex, const QPointF& scenePos);
+    void handleEquipDropCommand(int slotIndex, const QPointF& scenePos);
+    void handleEquipUnequip(int unitId, int equipIndex);
 
     // 阶段相关
     GamePhase phase() const { return m_phase; }
@@ -155,9 +162,18 @@ private:
 
     SellZoneItem* m_sellZone = nullptr; // 出售区图形项
 
+    // 装备系统
+    EquipBar* m_equipBar = nullptr;            // 装备栏管理器
+    bool m_equipDragActive = false;            // 装备拖拽进行中
+    int m_activeEquipSlotIndex = -1;           // 当前被拖拽的装备槽位
+    QGraphicsPixmapItem* m_equipDragGhost = nullptr; // 拖拽幽灵图标
+
     bool isOverSellZone(const QPointF& scenePos) const;
     void sellUnit(int unitId);
     void tryMergeStar(Unit* newUnit); // 检查并执行升星合并（三合一）
+
+    void buildEquipBar();              // 构建装备栏 GUI
+    UnitItem* findUnitItemAtScenePos(const QPointF& scenePos) const; // 查找场景坐标处的单位图形项
 
 
 };

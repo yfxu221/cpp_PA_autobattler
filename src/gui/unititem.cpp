@@ -12,7 +12,7 @@ UnitItem::UnitItem(Unit* unit, QGraphicsItem* parent)
     , m_dragging(false)
     , m_spriteTried(false)
 {
-    setAcceptedMouseButtons(Qt::LeftButton);
+    setAcceptedMouseButtons(Qt::LeftButton | Qt::RightButton);
 }
 
 QRectF UnitItem::boundingRect() const
@@ -62,6 +62,7 @@ void UnitItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget
         drawTraits(painter);
         drawStatus(painter);
         drawStarLevel(painter);
+        drawEquipments(painter);
     }
 }
 
@@ -290,6 +291,19 @@ void UnitItem::setGridPos(const QPoint& gridPos) // 设置单位图形项的网�
 
 void UnitItem::mousePressEvent(QGraphicsSceneMouseEvent* event) // 处理鼠标按下事件，如果按下的是左键，则开始拖拽单位图形项，并发出dragStarted信号，传递单位ID、源网格坐标和场景坐标
 {
+    if (event->button() == Qt::RightButton) {
+        if (m_unit && m_unit->owner() == Owner::PlayerCtrl) {
+            int idx = hitTestEquipIcon(event->pos());
+            if (idx >= 0) {
+                emit equipmentUnequipRequested(unitId(), idx);
+                event->accept();
+                return;
+            }
+        }
+        QGraphicsObject::mousePressEvent(event);
+        return;
+    }
+
     if (event->button() != Qt::LeftButton) {
         QGraphicsObject::mousePressEvent(event);
         return;
@@ -321,4 +335,62 @@ void UnitItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
     m_dragging = false;
     emit dragDropped(unitId(), m_gridPos, event->scenePos());
     event->accept();
+}
+
+
+
+QRectF UnitItem::equipIconRect(int index) const
+{
+    constexpr double kIconSize = 14.0;
+    constexpr double kGap      = 2.0;
+    constexpr double kStartX   = 18.0;
+    constexpr double kStartY   = 8.0;
+
+    const double x = kStartX - index * (kIconSize + 0.5 * kGap);
+    const double y = kStartY + index * (kIconSize + 0.6 * kGap);
+    return QRectF(x, y, kIconSize, kIconSize);
+}
+
+void UnitItem::drawEquipments(QPainter* painter)
+{
+    if (!m_unit) return;
+
+    const auto& equips = m_unit->equipments();
+    if (equips.empty()) return;
+
+    constexpr double kCornerR = 3.0;
+
+    for (size_t i = 0; i < equips.size() && i < static_cast<size_t>(Unit::MAX_EQUIP_SLOTS); ++i) {
+        if (!equips[i]) continue;
+
+        const QRectF iconRect = equipIconRect(static_cast<int>(i));
+
+        // 背景
+        painter->setPen(QPen(QColor(140, 140, 160), 1.0));
+        painter->setBrush(QColor(40, 40, 55, 210));
+        painter->drawRoundedRect(iconRect, kCornerR, kCornerR);
+
+        // 装备名首字（回退显示）
+        painter->setPen(Qt::white);
+        QFont font = painter->font();
+        font.setPointSize(7);
+        font.setBold(true);
+        painter->setFont(font);
+        painter->drawText(iconRect, Qt::AlignCenter, equips[i]->name.left(1));
+    }
+}
+
+int UnitItem::hitTestEquipIcon(const QPointF& localPos) const
+{
+    if (!m_unit) return -1;
+
+    const auto& equips = m_unit->equipments();
+    if (equips.empty()) return -1;
+
+    for (size_t i = 0; i < equips.size() && i < static_cast<size_t>(Unit::MAX_EQUIP_SLOTS); ++i) {
+        if (!equips[i]) continue;
+        if (equipIconRect(static_cast<int>(i)).contains(localPos))
+            return static_cast<int>(i);
+    }
+    return -1;
 }

@@ -35,7 +35,7 @@ Unit::Unit(const QString& key, const QString& name, int maxHp, int atk, int rang
 
 int Unit::atk() const
 {
-    return static_cast<int>(m_baseAtk * starMultiplier(m_starLevel)) + m_bonusAtk;
+    return static_cast<int>(m_baseAtk * starMultiplier(m_starLevel)) + m_bonusAtk + m_equipBonusAtk;
 }
 
 
@@ -77,7 +77,7 @@ void Unit::addSkill(std::shared_ptr<Skill> skill)
 }
 
 void Unit::applySynergyBonuses(const SynergyBonus& bonus) {
-    // HP: 按差值调整，保证不会因为羁绊变化导致血量百分比突变
+    // HP: 按差值调整
     int hpDelta = bonus.bonusMaxHp - m_bonusMaxHp;
     
     m_bonusAtk = bonus.bonusAtk;
@@ -98,4 +98,51 @@ void Unit::clearSynergyBonuses() {
     m_bonusSpeed = 0;
     m_hp = std::clamp(m_hp, 0, maxHp());
     m_mana = std::clamp(m_mana, 0, maxMana());
+}
+
+void Unit::recalcEquipBonuses()
+{
+    // 记录旧值，用于计算增量
+    const int oldEquipBonusHp = m_equipBonusMaxHp;
+
+    m_equipBonusAtk = 0;
+    m_equipBonusMaxHp = 0;
+    m_equipBonusMaxMana = 0;
+    m_equipBonusSpeed = 0;
+
+    for (const auto& eq : m_equipments) {
+        if (!eq) continue;
+        m_equipBonusAtk += eq->bonusAtk;
+        m_equipBonusMaxHp += eq->bonusMaxHp;
+        m_equipBonusMaxMana += eq->bonusMaxMana;
+        m_equipBonusSpeed += eq->bonusSpeed;
+    }
+
+    // 按差值调整 HP
+    const int hpDelta = m_equipBonusMaxHp - oldEquipBonusHp;
+    if (hpDelta != 0) {
+        m_hp = std::clamp(m_hp + hpDelta, 0, maxHp());
+    }
+    m_mana = std::clamp(m_mana, 0, maxMana());
+}
+
+bool Unit::equip(std::shared_ptr<Equipment> eq)
+{
+    if (!eq) return false;
+    if (!canEquip()) return false;
+
+    m_equipments.push_back(std::move(eq));
+    recalcEquipBonuses();
+    return true;
+}
+
+std::shared_ptr<Equipment> Unit::unequip(int index)
+{
+    if (index < 0 || index >= static_cast<int>(m_equipments.size()))
+        return nullptr;
+
+    auto removed = m_equipments[index];
+    m_equipments.erase(m_equipments.begin() + index);
+    recalcEquipBonuses();
+    return removed;
 }

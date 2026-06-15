@@ -1,0 +1,47 @@
+[
+    {
+        "key": "bf_sword",
+        "name": "暴风大剑",
+        "bonusAtk": 8,
+        "bonusMaxHp": 0,
+        "bonusMaxMana": 0,
+        "bonusSpeed": 0,
+        "sprite": "assets/equipments/bf_sword.png"
+    },
+    {
+        "key": "giant_belt",
+        "name": "巨人腰带",
+        "bonusAtk": 0,
+        "bonusMaxHp": 50,
+        "bonusMaxMana": 0,
+        "bonusSpeed": 0,
+        "sprite": "assets/equipments/giant_belt.png"
+    },
+    {
+        "key": "tear",
+        "name": "女神之泪",
+        "bonusAtk": 0,
+        "bonusMaxHp": 0,
+        "bonusMaxMana": -15,
+        "bonusSpeed": 0,
+        "sprite": "assets/equipments/tear.png"
+    },
+    {
+        "key": "recurve_bow",
+        "name": "反曲之弓",
+        "bonusAtk": 5,
+        "bonusMaxHp": 0,
+        "bonusMaxMana": 0,
+        "bonusSpeed": 5,
+        "sprite": "assets/equipments/recurve_bow.png"
+    },
+    {
+        "key": "chain_vest",
+        "name": "锁子甲",
+        "bonusAtk": 5,
+        "bonusMaxHp": 70,
+        "bonusMaxMana": 0,
+        "bonusSpeed": 0,
+        "sprite": "assets/equipments/chain_vest.png"
+    }
+]

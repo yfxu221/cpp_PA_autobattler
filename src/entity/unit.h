@@ -9,6 +9,8 @@
 #include <QColor>
 #include "skill.h"
 #include "synergyregistry.h"
+#include "equipment.h"
+#include <vector>
 
 enum Owner{
     PlayerCtrl,
@@ -56,11 +58,11 @@ public:
     bool hasTrait(const QString& trait) const { return m_traits.contains(trait); } // 检查单位是否具有特定的羁绊
     void takeDamage(int damage) { m_hp = std::clamp(m_hp - damage, 0, maxHp()); } // 受到伤害，减少生命值，但不低于0
     Owner owner() const { return m_owner; } // 获取单位的所有者，表示是玩家控制还是敌人控制
-    int maxHp() const { return static_cast<int>(m_baseMaxHp * starMultiplier(m_starLevel)) + m_bonusMaxHp; } // 获取单位的最大生命值（随星级缩放）
+    int maxHp() const { return static_cast<int>(m_baseMaxHp * starMultiplier(m_starLevel)) + m_bonusMaxHp + m_equipBonusMaxHp; } // 获取单位的最大生命值（随星级缩放）
     int hp() const { return m_hp; } // 获取单位当前的生命值
     int atk() const; // 获取单位的攻击力
     int range() const { return m_range; } // 获取单位的攻击范围
-    int maxMana() const { return m_maxMana + m_bonusMaxMana; } // 获取单位的最大法力值
+    int maxMana() const { return std::max(5, m_maxMana + m_bonusMaxMana + m_equipBonusMaxMana); } // 获取单位的最大法力值（最低为5）
     int mana() const { return m_mana; } // 获取单位当前的法力值
     int starLevel() const { return m_starLevel; } // 获取单位的星级
     const QSet<QString>& traits() const { return m_traits; } // 获取单位的羁绊集合
@@ -73,7 +75,7 @@ public:
     void processCooldown(); // 每tick调用：若冷却中则递减1（纯计数，不碰状态）
     void resetCooldown();   // 攻击后调用：将冷却重置为最大值
     bool isCooldownReady() const { return m_currentCooldown <= 0; } // 检查单位是否准备好进行下一次攻击
-    int speed() const { return m_speed + m_bonusSpeed; } // 获取单位的速度
+    int speed() const { return m_speed + m_bonusSpeed + m_equipBonusSpeed; } // 获取单位的速度
     int price() const; // 获取单位的价格
 
     std::unique_ptr<Unit> clone() const { return std::make_unique<Unit>(*this); }
@@ -81,13 +83,23 @@ public:
     void addSkill(std::shared_ptr<Skill> skill); // 添加技能
     const std::shared_ptr<Skill>& skill() const {return m_skill;} // 获取单位的技能
     bool hasSkill() const { return m_skill != nullptr; } // 检查单位是否拥有技能
-    bool canUseSkill() const {return hasSkill() && m_mana >= m_maxMana + m_bonusMaxMana;} // 检查单位是否可以使用技能（拥有技能且法力值足够）
+    bool canUseSkill() const {return hasSkill() && m_mana >= maxMana();} // 检查单位是否可以使用技能（拥有技能且法力值足够）
 
     void upgradeStar(); // 升星：starLevel+1，按比例调整血量
     static double starMultiplier(int starLevel); // 星级属性倍率：1星=1.0, 2星=1.8, 3星=3.24
 
     void applySynergyBonuses(const SynergyBonus& bonus); // 设置羁绊加成
     void clearSynergyBonuses(); // 清除羁绊加成
+
+    // 装备系统
+    static constexpr int MAX_EQUIP_SLOTS = 2; // 每个单位最多装备2件装备
+    bool equip(std::shared_ptr<Equipment> eq); // 装备一件装备，失败返回 false
+    std::shared_ptr<Equipment> unequip(int index); // 卸下指定槽位的装备
+    const std::vector<std::shared_ptr<Equipment>>& equipments() const { return m_equipments; }
+    int equipmentCount() const { return static_cast<int>(m_equipments.size()); }
+    bool canEquip() const { return equipmentCount() < MAX_EQUIP_SLOTS; }
+    void recalcEquipBonuses(); // 重新计算装备加成总和
+
 private:
     static int s_nextId; // 静态成员变量，用于生成唯一的单位ID，每创建一个单位，s_nextId就会递增，确保每个单位都有一个独特的ID
 
@@ -115,6 +127,13 @@ private:
     int m_bonusMaxHp = 0; // 来自羁绊的最大生命值加成
     int m_bonusMaxMana = 0; // 来自羁绊的最大法力值加成
     int m_bonusSpeed = 0; // 来自羁绊的速度加成
+
+    // 装备系统
+    std::vector<std::shared_ptr<Equipment>> m_equipments;        // 当前装备列表（最多 MAX_EQUIP_SLOTS 件）
+    int m_equipBonusAtk = 0;    // 来自装备的攻击力加成
+    int m_equipBonusMaxHp = 0;  // 来自装备的最大生命值加成
+    int m_equipBonusMaxMana = 0;// 来自装备的最大法力值加成
+    int m_equipBonusSpeed = 0;  // 来自装备的速度加成
 
 };
 
