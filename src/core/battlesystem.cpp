@@ -1,25 +1,12 @@
 #include "battlesystem.h"
 #include <algorithm>
+#include <QHash>
 #include "entity/skill.h"
 
 // ============================================================
 // 匿名命名空间 — 辅助函数，仅在当前翻译单元可见
 // ============================================================
 namespace {
-
-// 收集当前所有已占据的位置
-//   移动中单位 → 目标位置；其他 → 当前位置
-QList<QPoint> collectOccupiedPositions(const QList<PlannedAction>& actions)
-{
-    QList<QPoint> positions;
-    for (const auto& action : actions) {
-        if (action.unit->state() == UnitState::Moving)
-            positions.append(action.targetPos);
-        else
-            positions.append(action.unit->position());
-    }
-    return positions;
-}
 
 // 移动优先级排序：速度高 → ID 小 → Y 大 → X 大
 bool moveActionLess(const PlannedAction& a, const PlannedAction& b)
@@ -183,7 +170,15 @@ void BattleSystem::resolveActions(QList<PlannedAction>& actions) {
 
 void BattleSystem::moveAction(QList<PlannedAction>& actions)
 {
-    QList<QPoint> occupiedPositions = collectOccupiedPositions(actions);
+    QSet<QPoint> actualOccupied; // 不移动单位的当前位置，以及已确定移动落点的位置
+    QHash<QPoint, int> targetCounts; // 移动单位目标位置的计数（处理时递减，仅用于记账）
+
+    for (const auto& action : actions) {
+        if (action.unit->state() == UnitState::Moving)
+            targetCounts[action.targetPos]++;
+        else
+            actualOccupied.insert(action.unit->position());
+    }
 
     QList<PlannedAction> moveActions;
     std::copy_if(actions.begin(), actions.end(),
@@ -192,17 +187,18 @@ void BattleSystem::moveAction(QList<PlannedAction>& actions)
     std::sort(moveActions.begin(), moveActions.end(), moveActionLess);
 
     for (const auto& action : moveActions) {
-        // 先排除当前单位自己的目标标记，判断是否被其他单位占据
-        occupiedPositions.removeOne(action.targetPos);
+        // 撤销自己的目标预留，targetCounts 不再参与阻塞判断
+        if (--targetCounts[action.targetPos] <= 0)
+            targetCounts.remove(action.targetPos);
 
-        if (!occupiedPositions.contains(action.targetPos)) {
+        if (!actualOccupied.contains(action.targetPos)) {
             makeMove(action.unit, action.targetPos);
-            occupiedPositions.append(action.targetPos);
+            actualOccupied.insert(action.targetPos);
         } else {
             QList<QPoint> candidates;
             candidates.append(action.unit->position()); // 原地不动作为兜底
             for (const QPoint& neighbor : Pathfinder::hexNeighbors(action.unit->position())) {
-                if (!occupiedPositions.contains(neighbor) && m_board->isBoardPosition(neighbor))
+                if (!actualOccupied.contains(neighbor) && m_board->isBoardPosition(neighbor))
                     candidates.append(neighbor);
             }
 
@@ -213,10 +209,10 @@ void BattleSystem::moveAction(QList<PlannedAction>& actions)
 
             if (candidates[0] != action.unit->position()) {
                 makeMove(action.unit, candidates[0]);
-                occupiedPositions.append(candidates[0]);
+                actualOccupied.insert(candidates[0]);
             } else {
                 action.unit->setState(UnitState::Idle);
-                occupiedPositions.append(action.unit->position());
+                actualOccupied.insert(action.unit->position());
             }
         }
     }

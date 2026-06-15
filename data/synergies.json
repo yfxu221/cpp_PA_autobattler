@@ -1,0 +1,23 @@
+[
+  {
+    "trait": "神",
+    "thresholds": [
+      { "count": 2, "bonusAtk": 10},
+      { "count": 4, "bonusAtk": 15, "bonusMaxHp": 10, "bonusSpeed": 5 }
+    ]
+  },
+  {
+    "trait": "人",
+    "thresholds": [
+      { "count": 2, "bonusAtk": 5, "bonusMaxHp": 10 },
+      { "count": 3, "bonusAtk": 5, "bonusMaxHp": 20, "bonusMaxMana": -10 }
+    ]
+  },
+  {
+    "trait": "区",
+    "thresholds": [
+      { "count": 1, "bonusMaxMana": -10 },
+      { "count": 2, "bonusMaxMana": -15, "bonusAtk": 5 }
+    ]
+  }
+]

@@ -35,7 +35,8 @@ add_executable(Synera_Starter ${SOURCES} ${HEADERS}
     src/entity/skill.cpp
     src/entity/skills/SingleTargetedSkill.cpp
     src/entity/skills/MultiTargetedSkill.cpp
-    src/gui/sellzoneitem.cpp)
+    src/gui/sellzoneitem.cpp
+    src/entity/synergyregistry.cpp)
 
 target_include_directories(Synera_Starter PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src

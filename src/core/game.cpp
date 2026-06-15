@@ -40,6 +40,10 @@ Game::~Game()
 
 void Game::initialize()
 {
+    // 加载羁绊规则
+    if (!SynergyRegistry::instance()->load("")) {
+        qWarning() << "Game: 加载羁绊数据失败";
+    }
     createStarterUnitsIfNeeded();
     buildScene();
     buildStoreScene();
@@ -63,6 +67,7 @@ void Game::reset()
         m_board.addUnit(m_units.at(i).get(), initialPositions[i]);
     }
 
+    recalculateSynergies();
     syncFromBoard();
 }
 
@@ -133,6 +138,7 @@ void Game::handleDropCommand(int unitId, const QPoint& sourceGrid, const QPointF
         if (m_sellZone) {
             m_sellZone->setHighlighted(false);
         }
+        recalculateSynergies();
         syncFromBoard();
         return;
     }
@@ -156,6 +162,7 @@ void Game::handleDropCommand(int unitId, const QPoint& sourceGrid, const QPointF
     m_activeUnitId = -1;
     m_sourceGrid = QPoint(-1, -1);
 
+    recalculateSynergies();
     syncFromBoard();
 }
 
@@ -463,6 +470,9 @@ void Game::onBattleStart() {
             m_battleUnits.append(uptr.get());
         }
     }
+    // 开战前锁定羁绊加成
+    recalculateSynergies();
+
     // 保存当前单位快照，用于战斗结束后恢复
     m_unitsSnapshot.clear();
     for (const auto& uptr : m_units) {
@@ -568,8 +578,8 @@ void Game::onPreparationStart() {
                 this, &Game::handleDropCommand);
     }
 
+    recalculateSynergies();
     syncFromBoard();
-    emit stateUpdated();
 }
 
 
@@ -599,6 +609,46 @@ QHash<QString, int> Game::getTraitCounts(Owner owner) const {
         }
     }
     return traitCounts;
+}
+
+void Game::recalculateSynergies() {
+
+    for (auto& uptr : m_units) {
+        if (uptr) {
+            uptr->clearSynergyBonuses();
+        }
+    }
+
+    for (int ownerIdx = 0; ownerIdx < 2; ++ownerIdx) {
+        const Owner owner = (ownerIdx == 0) ? Owner::PlayerCtrl : Owner::EnemyCtrl;
+
+        // 统计该所有者在场上的 trait 数量
+        const QHash<QString, int> traitCounts = getTraitCounts(owner);
+
+        // 查表：每种 trait 在当前数量下提供的加成
+        QHash<QString, SynergyBonus> traitBonuses;
+        for (auto it = traitCounts.begin(); it != traitCounts.end(); ++it) {
+            traitBonuses[it.key()] = SynergyRegistry::instance()->getBonus(it.key(), it.value());
+        }
+
+        // 应用加成：遍历该所有者的单位，根据它们的 trait 应用对应的加成
+        for (int row = 0; row < m_board_rows; ++row) {
+            for (int col = 0; col < m_board_cols; ++col) {
+                Unit* unit = m_board.getUnitAt(QPoint(col, row));
+                if (!unit || unit->owner() != owner) {
+                    continue;
+                }
+
+                SynergyBonus totalBonus;
+                for (const QString& trait : unit->traits()) {
+                    if (traitBonuses.contains(trait)) {
+                        totalBonus += traitBonuses[trait];
+                    }
+                }
+                unit->applySynergyBonuses(totalBonus);
+            }
+        }
+    }
 }
 
 void Game::buyXp(int amount) {
@@ -675,6 +725,7 @@ void Game::onStoreSlotClicked(int index) {
     connect(item, &UnitItem::dragMoved,  this, &Game::handleDragMoved);
     connect(item, &UnitItem::dragDropped,this, &Game::handleDropCommand);
 
+    recalculateSynergies();
     syncFromBoard(); // 更新界面
     emit stateUpdated(); // 通知 UI 更新状态变化
 }

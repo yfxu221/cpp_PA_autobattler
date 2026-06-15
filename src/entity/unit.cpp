@@ -34,7 +34,7 @@ Unit::Unit(const QString& name, int maxHp, int atk, int range, int maxMana, int 
 
 int Unit::atk() const
 {
-    return m_atk;
+    return m_atk + m_bonusAtk;
 }
 
 void Unit::processCooldown()
@@ -57,4 +57,28 @@ int Unit::price() const
 void Unit::addSkill(std::shared_ptr<Skill> skill)
 {
     m_skill = skill;
+}
+
+void Unit::applySynergyBonuses(const SynergyBonus& bonus) {
+    // HP: 按差值调整，保证不会因为羁绊变化导致血量百分比突变
+    int hpDelta = bonus.bonusMaxHp - m_bonusMaxHp;
+    
+    m_bonusAtk = bonus.bonusAtk;
+    m_bonusMaxHp = bonus.bonusMaxHp;
+    m_bonusMaxMana = bonus.bonusMaxMana;
+    m_bonusSpeed = bonus.bonusSpeed;
+    
+    if (hpDelta != 0) {
+        m_hp = std::clamp(m_hp + hpDelta, 0, maxHp());
+    }
+    m_mana = std::clamp(m_mana, 0, maxMana());
+}
+
+void Unit::clearSynergyBonuses() {
+    m_bonusAtk = 0;
+    m_bonusMaxHp = 0;
+    m_bonusMaxMana = 0;
+    m_bonusSpeed = 0;
+    m_hp = std::clamp(m_hp, 0, maxHp());
+    m_mana = std::clamp(m_mana, 0, maxMana());
 }
