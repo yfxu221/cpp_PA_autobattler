@@ -12,13 +12,14 @@ QColor traitColor(const QString& trait) {
 
 int Unit::s_nextId = 0; // 静态成员变量初始化，确保每个单位都有一个唯一的ID，从0开始递增
 
-Unit::Unit(const QString& name, int maxHp, int atk, int range, int maxMana, int starLevel, int speed, const QSet<QString>& traits, Owner owner, const QString& spritePath, int attackCooldown, int price)
+Unit::Unit(const QString& key, const QString& name, int maxHp, int atk, int range, int maxMana, int starLevel, int speed, const QSet<QString>& traits, Owner owner, const QString& spritePath, int attackCooldown, int price)
     : m_id(s_nextId++)
+    , m_key(key)
     , m_name(name)
     , m_position(0, 0)
-    , m_maxHp(maxHp)
-    , m_hp(maxHp)
-    , m_atk(atk)
+    , m_baseMaxHp(maxHp)
+    , m_hp(static_cast<int>(maxHp * starMultiplier(starLevel)))
+    , m_baseAtk(atk)
     , m_range(range)
     , m_maxMana(maxMana)
     , m_mana(0)
@@ -34,7 +35,23 @@ Unit::Unit(const QString& name, int maxHp, int atk, int range, int maxMana, int 
 
 int Unit::atk() const
 {
-    return m_atk + m_bonusAtk;
+    return static_cast<int>(m_baseAtk * starMultiplier(m_starLevel)) + m_bonusAtk;
+}
+
+
+double Unit::starMultiplier(int starLevel)
+{
+    // 1星=1.0, 2星=1.8, 3星=1.8^2=3.24
+    return std::pow(1.8, starLevel - 1);
+}
+
+void Unit::upgradeStar()
+{
+    if (m_starLevel >= 3) return;
+
+    double hpRatio = static_cast<double>(m_hp) / maxHp();
+    m_starLevel++;
+    m_hp = std::clamp(static_cast<int>(maxHp() * hpRatio), 1, maxHp());
 }
 
 void Unit::processCooldown()

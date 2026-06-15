@@ -109,7 +109,7 @@ std::unique_ptr<Unit> UnitData::createUnit(const QString& key, Owner owner, int 
     }
 
     const UnitTemplate& temp = it.value();
-    std::unique_ptr<Unit> unit = std::make_unique<Unit>(temp.name, temp.maxHp, temp.atk, temp.range, temp.maxMana,
+    std::unique_ptr<Unit> unit = std::make_unique<Unit>(temp.key, temp.name, temp.maxHp, temp.atk, temp.range, temp.maxMana,
                                   starLevel, temp.speed, temp.traits, owner, temp.sprite,
                                   temp.attackCooldown, temp.price);
     if (!temp.skill.isEmpty()) {

@@ -58,10 +58,10 @@ void UnitItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget
         }
     }
     if(m_unit) { // 画单位血量、mana、attack、敌我方等信息
-        drawStarLevel(painter);
         drawAttackValue(painter);
         drawTraits(painter);
         drawStatus(painter);
+        drawStarLevel(painter);
     }
 }
 

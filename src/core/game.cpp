@@ -725,6 +725,8 @@ void Game::onStoreSlotClicked(int index) {
     connect(item, &UnitItem::dragMoved,  this, &Game::handleDragMoved);
     connect(item, &UnitItem::dragDropped,this, &Game::handleDropCommand);
 
+    tryMergeStar(boughtUnit); // 购买后尝试升星合并
+
     recalculateSynergies();
     syncFromBoard(); // 更新界面
     emit stateUpdated(); // 通知 UI 更新状态变化
@@ -787,4 +789,65 @@ void Game::sellUnit(int unitId) {
     }
 
     m_player.addGold(refund);
+}
+
+void Game::tryMergeStar(Unit* newUnit)
+{
+    if (!newUnit) return;
+    if (m_phase != GamePhase::Preparation) return;
+    if (newUnit->owner() != Owner::PlayerCtrl) return;
+    if (newUnit->starLevel() >= 3) return; // 已达上限
+
+    const QString key = newUnit->key();
+    const int star = newUnit->starLevel();
+
+    QList<Unit*> candidates;
+    for (const auto& uptr : m_units) {
+        if (uptr->owner() == Owner::PlayerCtrl
+            && uptr->key() == key
+            && uptr->starLevel() == star
+            && uptr->isAlive()) {
+            candidates.append(uptr.get());
+        }
+    }
+
+    if (candidates.size() < 3) return;
+
+    // 优先保留 newUnit，其余任选2个消耗
+    Unit* keep = candidates.contains(newUnit) ? newUnit : candidates[0];
+
+    QList<Unit*> consume;
+    for (Unit* c : candidates) {
+        if (c != keep && consume.size() < 2) {
+            consume.append(c);
+        }
+    }
+
+    // 销毁被消耗的单位
+    for (Unit* u : consume) {
+        m_board.removeUnit(u);
+
+        auto it = std::find_if(m_units.begin(), m_units.end(),
+            [u](const auto& ptr) { return ptr.get() == u; });
+        if (it != m_units.end()) {
+            m_units.erase(it);
+        }
+
+        if (auto* item = findUnitItem(u->id())) {
+            m_scene->removeItem(item);
+            auto itemIt = std::find(m_unitItems.begin(), m_unitItems.end(), item);
+            if (itemIt != m_unitItems.end()) m_unitItems.erase(itemIt);
+            m_unitItemById.erase(u->id());
+            delete item;
+        }
+    }
+
+    // 升级保留的单位
+    keep->upgradeStar();
+
+    recalculateSynergies();
+    syncFromBoard();
+
+    // 递归检查连锁升星
+    tryMergeStar(keep);
 }

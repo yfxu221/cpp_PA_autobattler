@@ -157,6 +157,7 @@ private:
 
     bool isOverSellZone(const QPointF& scenePos) const;
     void sellUnit(int unitId);
+    void tryMergeStar(Unit* newUnit); // 检查并执行升星合并（三合一）
 
 
 };
