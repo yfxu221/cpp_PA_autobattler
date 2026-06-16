@@ -39,7 +39,8 @@ add_executable(Synera_Starter ${SOURCES} ${HEADERS}
     src/entity/synergyregistry.cpp
     src/entity/equipmentdata.cpp
     src/gui/equipslotitem.cpp
-    src/gui/equipbar.cpp)
+    src/gui/equipbar.cpp
+    src/core/enemyspawner.cpp)
 
 target_include_directories(Synera_Starter PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src

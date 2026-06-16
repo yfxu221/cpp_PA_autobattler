@@ -12,7 +12,7 @@ struct UnitTemplate {  // JSON 反序列化后的结构体
     QString key, name;
     int maxHp, atk, range, maxMana, attackCooldown, speed, price;
     QSet<QString> traits;
-    QString sprite, skill;
+    QString sprite, skill, type;
 };
 
 class UnitData { // 单位数据管理类，负责加载单位数据、创建单位实例等功能
@@ -20,7 +20,8 @@ public:
     static UnitData* instance();
     bool load(const QString& jsonPath);
     std::unique_ptr<Unit> createUnit(const QString& key, Owner owner, int starLevel = 1) const;
-    QList<QString> allKeys() const;
+    QList<QString> allKeys() const; // 返回所有单位模板的key列表
+    QHash<QString, UnitTemplate> allTemplates() const { return m_templates; }
 
 private:
     QHash<QString, UnitTemplate> m_templates;

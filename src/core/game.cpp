@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <set>
+#include "core/enemyspawner.h"
 
 namespace {
 constexpr qreal kZGrid = 0.0; // 网格z坐标
@@ -58,20 +59,23 @@ void Game::initialize()
 }
 
 void Game::reset()
-{   
+{
     m_phase = GamePhase::Preparation;
     emit phaseChanged(GamePhase::Preparation);
     m_board.clear();
 
-    const QPoint initialPositions[] = {
-        QPoint(0, 7),
-        QPoint(1, 7),
-        QPoint(0, 8),
-        QPoint(1, 1)
-    };
-
-    for (int i = 0; i < m_units.size() && i < 4; ++i) {
-        m_board.addUnit(m_units.at(i).get(), initialPositions[i]);
+    // 玩家单位 → 备战席; 敌方单位 → 其 plan.position
+    int benchCol = 0;
+    for (const auto& uptr : m_units) {
+        if (uptr->owner() == Owner::PlayerCtrl) {
+            const QPoint benchPos(benchCol, m_board_rows); // 备战席第一行
+            if (m_board.isValidPosition(benchPos)) {
+                m_board.addUnit(uptr.get(), benchPos);
+                ++benchCol;
+            }
+        } else {
+            m_board.addUnit(uptr.get(), uptr->position());
+        }
     }
 
     recalculateSynergies();
@@ -179,7 +183,6 @@ void Game::createStarterUnitsIfNeeded()
         return;
     }
 
-
     SkillRegistry::instance(); // 加载技能
     if (!SkillRegistry::instance()->load("")) {
         qFatal("无法加载技能数据文件");
@@ -193,19 +196,27 @@ void Game::createStarterUnitsIfNeeded()
         qFatal("无法加载单位数据文件");
     }
 
-    auto tryAppend = [this](UnitData* data, const QString& key, Owner owner, int starLevel = 1) {
-        auto u = data->createUnit(key, owner, starLevel);
+    // 加载敌人生成器
+    EnemySpawner::instance()->load("");
+
+    // ━━ 随机生成 2 个玩家初始单位 (1星, 无装备) ━━
+    const QStringList keys = unitData->allKeys();
+    if (keys.isEmpty()) {
+        qFatal("单位数据为空，无法生成初始单位");
+    }
+
+    for (int i = 0; i < 2; ++i) {
+        const QString key = keys[rand() % keys.size()];
+        auto u = unitData->createUnit(key, Owner::PlayerCtrl, 1);
         if (u) {
             m_units.push_back(std::move(u));
         } else {
-            qWarning() << "创建单位失败，key:" << key;
+            qWarning() << "创建初始单位失败，key:" << key;
         }
-    };
+    }
 
-    tryAppend(unitData, "white_e", Owner::PlayerCtrl, 2);
-    tryAppend(unitData, "black_e", Owner::PlayerCtrl, 2);
-    tryAppend(unitData, "lingsha", Owner::PlayerCtrl, 1);
-    tryAppend(unitData, "gugugaga", Owner::EnemyCtrl, 3);
+    // ━━ 首轮敌方单位生成 (battleIndex = 1) ━━
+    generateEnemyUnits();
 }
 
 Unit* Game::findUnitById(int unitId) const
@@ -486,10 +497,11 @@ void Game::onBattleStart() {
     // 开战前锁定羁绊加成
     recalculateSynergies();
 
-    // 保存当前单位快照，用于战斗结束后恢复
+    // 保存玩家单位快照，用于战斗结束后恢复（敌方每回合重新生成，无需快照）
     m_unitsSnapshot.clear();
     for (const auto& uptr : m_units) {
-        m_unitsSnapshot.push_back(uptr->clone());
+        if (uptr->owner() == Owner::PlayerCtrl)
+            m_unitsSnapshot.push_back(uptr->clone());
     }
 
     // 启动战斗
@@ -589,21 +601,22 @@ void Game::onPreparationStart() {
     m_unitItemById.clear();
 
     m_board.clear();
-
-    // 从快照恢复 m_units
     m_units.clear();
+
+    // 从快照恢复玩家单位 (快照只含玩家单位)
     for (const auto& uptr : m_unitsSnapshot) {
-        m_units.push_back(uptr->clone());
-    }
-
-    for (const auto& uptr : m_units) {
-        const QPoint pos = uptr->position();
+        auto clone = uptr->clone();
+        const QPoint pos = clone->position();
         if (m_board.isValidPosition(pos)) {
-            m_board.addUnit(uptr.get(), pos);
+            m_board.addUnit(clone.get(), pos);
         }
+        m_units.push_back(std::move(clone));
     }
 
-    // 为恢复的单位创建新的 UnitItem
+    // 生成新一轮敌方单位
+    generateEnemyUnits();
+
+    // 为所有单位创建新的 UnitItem
     for (const auto& uptr : m_units) {
         UnitItem* unitItem = new UnitItem(uptr.get());
         unitItem->setZValue(kZUnit);
@@ -623,6 +636,19 @@ void Game::onPreparationStart() {
 
     recalculateSynergies();
     syncFromBoard();
+}
+
+void Game::generateEnemyUnits() {
+    const int nextBattleIndex = m_battleIndex + 1;
+    QVector<EnemySpawnPlan> plans = EnemySpawner::instance()->generateEnemy(nextBattleIndex, m_board);
+
+    for (const auto& plan : plans) {
+        auto u = UnitData::instance()->createUnit(plan.unitKey, Owner::EnemyCtrl, plan.starLevel);
+        if (!u) continue;
+        u->setPosition(plan.position);
+        m_board.addUnit(u.get(), plan.position);
+        m_units.push_back(std::move(u));
+    }
 }
 
 

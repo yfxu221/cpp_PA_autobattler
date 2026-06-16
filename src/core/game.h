@@ -189,6 +189,7 @@ private:
 
     void buildEquipBar(); // 构建装备栏 GUI
     UnitItem* findUnitItemAtScenePos(const QPointF& scenePos) const; // 查找场景坐标处的单位图形项
+    void generateEnemyUnits(); // 生成新一轮敌方单位（清旧+生新）
 
 
 };

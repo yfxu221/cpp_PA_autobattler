@@ -4,14 +4,15 @@
     "name": "企厄",
     "maxHp": 45,
     "atk": 7,
-    "range": 3,
-    "maxMana": 100,
+    "range": 1,
+    "maxMana": 30,
     "traits": ["神"],
     "sprite": "assets/white_e/normal/white_e_normal.png",
     "attackCooldown": 2,
     "speed": 20,
     "price": 3,
-    "skill": "execute"
+    "skill": "cleave",
+    "type": "战士"
   },
   {
     "key": "black_e",
@@ -19,13 +20,14 @@
     "maxHp": 70,
     "atk": 6,
     "range": 1,
-    "maxMana": 30,
+    "maxMana": 90,
     "traits": ["神"],
     "sprite": "assets/black_e/normal/black_e_normal.png",
     "attackCooldown": 1,
     "speed":25,
     "price": 4,
-    "skill": "cleave"
+    "skill": "execute",
+    "type": "刺客"
   },
   {
     "key": "lingsha",
@@ -39,7 +41,8 @@
     "attackCooldown": 3,
     "speed": 10,
     "price": 5,
-    "skill": "groupHeal"
+    "skill": "groupHeal",
+    "type": "辅助"
   },
   {
     "key": "gugugaga",
@@ -53,20 +56,22 @@
     "attackCooldown": 2,
     "speed":30,
     "price": 6,
-    "skill": "cleave"
+    "skill": "cleave",
+    "type": "坦克"
   },
   {
     "key": "hihihihi",
     "name": "爱音斯坦",
-    "maxHp": 50,
-    "atk": 9,
-    "range": 1,
-    "maxMana": 50,
+    "maxHp": 40,
+    "atk": 3,
+    "range": 3,
+    "maxMana": 25,
     "traits": ["人"],
     "sprite": "assets/hihihihi/normal/hihihihi_normal.png",
     "attackCooldown": 2,
     "speed": 40,
     "price": 2,
-    "skill": "cleave"
+    "skill": "cleave",
+    "type": "射手"
   }
 ]

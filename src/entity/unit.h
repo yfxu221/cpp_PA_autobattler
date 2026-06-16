@@ -41,6 +41,7 @@ public:
                 const QSet<QString>& traits = {},
                 Owner owner = PlayerCtrl,
                 const QString& spritePath = QString(),
+                const QString& type = QString(),
                 int attackCooldown = 2,
                 int price = 100
                 );
@@ -69,6 +70,7 @@ public:
     QString spritePath() const { return m_spritePath; } // 获取单位的精灵图片路径
     UnitState state() const { return m_state; } // 获取单位的当前状态
     void setState(UnitState state) { m_state = state; } // 设置单位的当前状态
+    QString type() const { return m_type; } // 获取单位的类型，用于生成敌人时的启发式阵型选择
 
     void setHp(int hp) { m_hp = std::clamp(hp, 0, maxHp()); } // 设置单位的生命值，确保不超过最大生命值且不低于0
     void setMana(int mana) { m_mana = std::clamp(mana, 0, maxMana()); } // 设置单位的法力值，确保不超过最大
@@ -117,6 +119,7 @@ private:
     QSet<QString> m_traits; //单位羁绊
     int m_starLevel; //单位星级
     QString m_spritePath; // 精灵图片路径
+    QString m_type; // 单位类型，用于生成敌人时的启发式阵型选择
     UnitState m_state; // 单位的当前状态
     int m_attackCooldown; // 记录攻击冷却时间，单位为tick数
     int m_currentCooldown = 0; // 当前剩余的冷却时间，单位为tick数

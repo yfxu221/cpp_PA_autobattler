@@ -12,7 +12,7 @@ QColor traitColor(const QString& trait) {
 
 int Unit::s_nextId = 0; // 静态成员变量初始化，确保每个单位都有一个唯一的ID，从0开始递增
 
-Unit::Unit(const QString& key, const QString& name, int maxHp, int atk, int range, int maxMana, int starLevel, int speed, const QSet<QString>& traits, Owner owner, const QString& spritePath, int attackCooldown, int price)
+Unit::Unit(const QString& key, const QString& name, int maxHp, int atk, int range, int maxMana, int starLevel, int speed, const QSet<QString>& traits, Owner owner, const QString& spritePath, const QString& type, int attackCooldown, int price)
     : m_id(s_nextId++)
     , m_key(key)
     , m_name(name)
@@ -23,6 +23,7 @@ Unit::Unit(const QString& key, const QString& name, int maxHp, int atk, int rang
     , m_range(range)
     , m_maxMana(maxMana)
     , m_mana(0)
+    , m_type(type)
     , m_owner(owner)
     , m_speed(speed)
     , m_state(UnitState::Idle)
