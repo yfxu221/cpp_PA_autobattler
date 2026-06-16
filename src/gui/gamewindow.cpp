@@ -1,6 +1,10 @@
 #include "gamewindow.h"
 #include "core/game.h"
 #include "gui/settlementdialog.h"
+#include "gui/lootdialog.h"
+#include "entity/equipmentdata.h"
+#include <algorithm>
+#include <functional>
 #include <QGraphicsView>
 #include <QHBoxLayout>
 #include <QPainter>
@@ -46,14 +50,70 @@ void GameWindow::onBuyXpButtonClicked() {
 
 //  结算
 void GameWindow::onSettlementReady(const SettlementInfo& info) {
+    // 战斗结算弹窗
     SettlementDialog dialog(info, this);
-    dialog.exec(); // 显示结算对话框，用户点击后继续下一回合或重置游戏
+    dialog.exec();
 
     if (info.isGameOver) {
         m_game->reset();
-    } else {
-        m_game->startPreparation();
+        return;
     }
+
+    // 掉落弹窗（仅当有掉落时）
+    if (!info.droppedEquipmentKeys.isEmpty()) {
+        EquipBar* bar = m_game->equipBar();
+        auto& reg = *EquipmentRegistry::instance();
+
+        // 从 key 创建装备实例
+        std::vector<std::shared_ptr<Equipment>> newItems;
+        for (const QString& key : info.droppedEquipmentKeys) {
+            auto eq = reg.createEquipment(key);
+            if (eq) newItems.push_back(eq);
+        }
+
+        if (!newItems.empty()) {
+            auto barEquipments = bar->allEquipments();
+            LootDialog lootDlg(newItems, barEquipments,
+                               LootDialog::LootContext::Settlement, this);
+            lootDlg.exec();
+
+            const auto& result = lootDlg.result();
+            if (result.cancelled) {
+                // 用户点 × → 放弃所有掉落
+                bar->refreshDisplay();
+            } else {
+                // 丢弃选中的装备栏槽位
+                std::vector<int> discards(result.discardBarIndices.begin(),
+                                           result.discardBarIndices.end());
+                std::sort(discards.begin(), discards.end(), std::greater<int>());
+                for (int idx : discards) {
+                    bar->removeEquipment(idx);
+                }
+
+                // 未标记丢弃的新装备放入空位
+                for (size_t i = 0; i < newItems.size(); ++i) {
+                    if (result.discardNewIndices.count(static_cast<int>(i)) > 0) continue;
+                    bar->addEquipment(newItems[i]);
+                }
+                bar->refreshDisplay();
+            }
+        }
+    }
+
+    m_game->startPreparation();
+}
+
+//  装备栏溢出弹窗
+void GameWindow::onEquipBarOverflow() {
+    EquipBar* bar = m_game->equipBar();
+    auto barEquipments = bar->allEquipments();
+
+    LootDialog lootDlg(m_game->pendingOverflowEquipments(),
+                       barEquipments,
+                       m_game->pendingOverflowContext(),
+                       this);
+    lootDlg.exec();
+    m_game->resolveEquipOverflow(lootDlg.result());
 }
 
 
@@ -94,7 +154,7 @@ void GameWindow::refreshInfoBar()
     Player* p = m_game->player();
     Player* e = m_game->enemy();
 
-    // ---- 敌方 ----
+    // 敌方
     m_enemyLevelLabel->setText(QString("等级: %1").arg(e->level()));
     m_enemyHpLabel->setText(hpText(e->hp(), e->maxHp()));
     m_enemyGoldLabel->setText(QString("金币💰: <span style='color:#ffcc00;'>%1</span>").arg(e->gold()));
@@ -102,7 +162,7 @@ void GameWindow::refreshInfoBar()
         .arg(m_game->countFieldUnits(EnemyCtrl)).arg(e->maxFieldUnits()));
     m_enemyTraitLabel->setText(traitHtml(m_game->getTraitCounts(EnemyCtrl)));
 
-    // ---- 玩家 ----
+    // 玩家
     m_playerLevelLabel->setText(QString("等级: %1").arg(p->level()));
     m_playerXpLabel->setText(QString("经验: <span style='color:#66cccc;'>%1/%2</span>")
         .arg(p->xp()).arg(p->xpToNext()));
@@ -112,10 +172,10 @@ void GameWindow::refreshInfoBar()
         .arg(m_game->countFieldUnits(PlayerCtrl)).arg(p->maxFieldUnits()));
     m_playerTraitLabel->setText(traitHtml(m_game->getTraitCounts(PlayerCtrl)));
 
-    // ---- 轮次 ----
+    // 轮次
     m_roundLabel->setText(QString("第 %1 轮").arg(m_game->battleIndex()));
 
-    // ---- 按钮 ----
+    // 按钮
     m_buyXpButton->setText(QString("购买2经验 (2金币)"));
     m_buyXpButton->setEnabled(m_game->phase() == GamePhase::Preparation && p->gold() >= 2);
 }
@@ -232,7 +292,7 @@ void GameWindow::setupUI()
     m_view->setMinimumWidth(620);
     m_mainLayout->addWidget(m_view, 1); // 将游戏视图添加到主布局中，并设置伸缩因子为1
 
-    // ---- 右侧：信息面板 ----
+    // 右侧：信息面板
     m_sidePanel = new QWidget(this);
     m_sidePanel->setObjectName("sidePanel");
     m_sidePanel->setFixedWidth(220);
@@ -242,16 +302,16 @@ void GameWindow::setupUI()
     sideLayout->setContentsMargins(8, 8, 8, 8);
     sideLayout->setSpacing(6);
 
-    // ----- 敌方信息组 -----
+    // 敌方信息组
     m_enemyGroup = createInfoGroup(QStringLiteral("⚔ 敌方"));
     auto* enemyLayout = new QVBoxLayout(m_enemyGroup);
     enemyLayout->setSpacing(3);
 
     m_enemyLevelLabel = new QLabel("等级: -", this);
-    m_enemyHpLabel     = new QLabel("HP: -/-", this);
-    m_enemyGoldLabel   = new QLabel("金币: -", this);
-    m_enemyFieldLabel  = new QLabel("场上: -/-", this);
-    m_enemyTraitLabel  = new QLabel("羁绊: 无", this);
+    m_enemyHpLabel = new QLabel("HP: -/-", this);
+    m_enemyGoldLabel = new QLabel("金币: -", this);
+    m_enemyFieldLabel = new QLabel("场上: -/-", this);
+    m_enemyTraitLabel = new QLabel("羁绊: 无", this);
 
     for (QLabel* lbl : {m_enemyLevelLabel, m_enemyHpLabel, m_enemyGoldLabel,
                          m_enemyFieldLabel, m_enemyTraitLabel}) {
@@ -265,7 +325,7 @@ void GameWindow::setupUI()
     enemyLayout->addWidget(m_enemyTraitLabel);
     sideLayout->addWidget(m_enemyGroup);
 
-    // ----- 轮次显示 -----
+    // 轮次显示
     QFrame* roundFrame = new QFrame(this);
     roundFrame->setStyleSheet(R"(
         QFrame {
@@ -282,15 +342,15 @@ void GameWindow::setupUI()
     roundLayout->addWidget(m_roundLabel);
     sideLayout->addWidget(roundFrame);
 
-    // ----- 玩家信息组 -----
+    // 玩家信息组
     m_playerGroup = createInfoGroup(QStringLiteral("🛡 玩家"));
     auto* playerLayout = new QVBoxLayout(m_playerGroup);
     playerLayout->setSpacing(3);
 
     m_playerLevelLabel = new QLabel("等级: -", this);
-    m_playerXpLabel    = new QLabel("经验: -/-", this);
-    m_playerHpLabel    = new QLabel("HP: -/-", this);
-    m_playerGoldLabel  = new QLabel("金币: -", this);
+    m_playerXpLabel = new QLabel("经验: -/-", this);
+    m_playerHpLabel = new QLabel("HP: -/-", this);
+    m_playerGoldLabel = new QLabel("金币: -", this);
     m_playerFieldLabel = new QLabel("场上: -/-", this);
     m_playerTraitLabel = new QLabel("羁绊: 无", this);
 
@@ -307,10 +367,10 @@ void GameWindow::setupUI()
     playerLayout->addWidget(m_playerTraitLabel);
     sideLayout->addWidget(m_playerGroup);
 
-    // ----- 弹性空间 -----
-    sideLayout->addStretch();
+    // 弹性空间
+    sideLayout->addStretch(); // 添加一个弹性空间，使得按钮组被推到侧边栏底部
 
-    // ----- 按钮组 -----
+    // 按钮组
     auto* btnLayout = new QVBoxLayout();
     btnLayout->setSpacing(4);
     btnLayout->addWidget(m_buyXpButton);
@@ -320,7 +380,7 @@ void GameWindow::setupUI()
 
     m_mainLayout->addWidget(m_sidePanel);
 
-    // ---- 信号连接 ----
+    // 信号连接
     connect(m_resetButton, &QPushButton::clicked,
             this, &GameWindow::onResetButtonClicked); // 连接重置按钮的点击信号到槽函数
 
@@ -338,6 +398,9 @@ void GameWindow::setupUI()
 
     connect(m_game, &Game::settlementReady,
             this, &GameWindow::onSettlementReady); // 连接结算信号到显示结算对话框的槽函数
+
+    connect(m_game, &Game::equipBarOverflow,
+            this, &GameWindow::onEquipBarOverflow); // 连接装备栏溢出信号
 
     m_view->setScene(m_game->scene()); // 将游戏的图形场景设置为视图的场景，使游戏内容能够显示在视图中
 }

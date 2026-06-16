@@ -20,6 +20,7 @@
 #include "entity/synergyregistry.h"
 #include "gui/sellzoneitem.h"
 #include "gui/equipbar.h"
+#include "gui/lootdialog.h"
 
 class Unit;
 class QGraphicsScene;
@@ -50,6 +51,7 @@ struct SettlementInfo {
     int enemyGoldBefore;
     int enemyGoldAfter;
     bool isGameOver; // 是否有人 HP ≤ 0
+    QStringList droppedEquipmentKeys; // 击败敌人掉落的装备 key 列表
 };
 
 
@@ -72,10 +74,10 @@ public:
     void handleDropCommand(int unitId, const QPoint& sourceGrid, const QPointF& scenePos);
 
     // 装备拖拽
-    void handleEquipDragStarted(int slotIndex, const QPointF& scenePos);
-    void handleEquipDragMoved(int slotIndex, const QPointF& scenePos);
-    void handleEquipDropCommand(int slotIndex, const QPointF& scenePos);
-    void handleEquipUnequip(int unitId, int equipIndex);
+    void handleEquipDragStarted(int slotIndex, const QPointF& scenePos); // 装备栏内开始拖动
+    void handleEquipDragMoved(int slotIndex, const QPointF& scenePos); // 装备栏内拖动时的视觉反馈
+    void handleEquipDropCommand(int slotIndex, const QPointF& scenePos); // 装备栏内拖动或拖出
+    void handleEquipUnequip(int unitId, int equipIndex); // 右键卸装备
 
     // 阶段相关
     GamePhase phase() const { return m_phase; }
@@ -93,12 +95,20 @@ public:
     int playerMaxFieldUnits() const { return m_player.maxFieldUnits(); } // 获取玩家在棋盘上可以拥有的最大单位数量
     void buyXp(int amount); // 玩家购买经验，增加经验值
     void refreshStore(); // 刷新商店，生成新的单位列表
+    EquipBar* equipBar() { return m_equipBar; } // 获取装备栏管理器
+
+    // 装备栏溢出处理（卸装备/出售时装备栏满 → LootDialog）
+    const std::vector<std::shared_ptr<Equipment>>& pendingOverflowEquipments() const { return m_pendingOverflowEquipments; }
+    LootDialog::LootContext pendingOverflowContext() const { return m_pendingOverflowContext; }
+    int pendingOverflowUnitId() const { return m_pendingOverflowUnitId; }
+    void resolveEquipOverflow(const LootDialog::LootResult& result);
 
 signals:
     void phaseChanged(GamePhase newPhase);  // 通知 UI 更新
     void stateUpdated(); // 通知 UI 更新状态变化
     void SettlementGUI(); // 通知 UI 显示结算界面
     void settlementReady(SettlementInfo); // 结算信息准备好，可以显示结算界面
+    void equipBarOverflow(); // 装备栏溢出，需要弹窗处理
 
 private:
     void createStarterUnitsIfNeeded();
@@ -163,16 +173,21 @@ private:
     SellZoneItem* m_sellZone = nullptr; // 出售区图形项
 
     // 装备系统
-    EquipBar* m_equipBar = nullptr;            // 装备栏管理器
-    bool m_equipDragActive = false;            // 装备拖拽进行中
-    int m_activeEquipSlotIndex = -1;           // 当前被拖拽的装备槽位
+    EquipBar* m_equipBar = nullptr; // 装备栏管理器
+    bool m_equipDragActive = false; // 装备拖拽进行中
+    int m_activeEquipSlotIndex = -1; // 当前被拖拽的装备槽位
     QGraphicsPixmapItem* m_equipDragGhost = nullptr; // 拖拽幽灵图标
+
+    // 装备栏满时的溢出暂存
+    std::vector<std::shared_ptr<Equipment>> m_pendingOverflowEquipments; // 装备栏满时的暂存
+    LootDialog::LootContext m_pendingOverflowContext = LootDialog::LootContext::Unequip; // 溢出场景
+    int m_pendingOverflowUnitId = -1; // 溢出来源单位（用于回滚）
 
     bool isOverSellZone(const QPointF& scenePos) const;
     void sellUnit(int unitId);
     void tryMergeStar(Unit* newUnit); // 检查并执行升星合并（三合一）
 
-    void buildEquipBar();              // 构建装备栏 GUI
+    void buildEquipBar(); // 构建装备栏 GUI
     UnitItem* findUnitItemAtScenePos(const QPointF& scenePos) const; // 查找场景坐标处的单位图形项
 
 

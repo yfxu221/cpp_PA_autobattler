@@ -25,6 +25,7 @@ private slots:
     void refreshInfoBar(); // 刷新侧边栏显示双方状态等信息
     void onBuyXpButtonClicked(); // 购买经验按钮点击事件处理函数
     void onSettlementReady(const SettlementInfo& info); // 结算界面显示
+    void onEquipBarOverflow(); // 装备栏溢出弹窗
 
 private:
     void setupUI();
@@ -37,7 +38,7 @@ private:
     QGraphicsView* m_view; // 游戏视图
     Game* m_game;
 
-    // ---- 右侧面板 ----
+    // 右侧面板
     QWidget* m_sidePanel; // 右侧面板容器
 
     // 敌方信息

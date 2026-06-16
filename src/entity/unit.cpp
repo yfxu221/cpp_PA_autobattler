@@ -31,7 +31,9 @@ Unit::Unit(const QString& key, const QString& name, int maxHp, int atk, int rang
     , m_spritePath(spritePath)
     , m_attackCooldown(attackCooldown)
     , m_price(price)
-{}
+    , m_maxEquipSlots(starLevel == 1 ? 1 : 2)
+{
+}
 
 int Unit::atk() const
 {
@@ -52,6 +54,7 @@ void Unit::upgradeStar()
     double hpRatio = static_cast<double>(m_hp) / maxHp();
     m_starLevel++;
     m_hp = std::clamp(static_cast<int>(maxHp() * hpRatio), 1, maxHp());
+    m_maxEquipSlots = 2; // 升星后至少2星，2个装备槽
 }
 
 void Unit::processCooldown()

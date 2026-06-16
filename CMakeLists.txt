@@ -61,4 +61,4 @@ endif()
 
 if(APPLE)
     set_target_properties(Synera_Starter PROPERTIES MACOSX_BUNDLE TRUE)
-endif() 
+endif()

@@ -92,12 +92,12 @@ public:
     void clearSynergyBonuses(); // 清除羁绊加成
 
     // 装备系统
-    static constexpr int MAX_EQUIP_SLOTS = 2; // 每个单位最多装备2件装备
     bool equip(std::shared_ptr<Equipment> eq); // 装备一件装备，失败返回 false
     std::shared_ptr<Equipment> unequip(int index); // 卸下指定槽位的装备
     const std::vector<std::shared_ptr<Equipment>>& equipments() const { return m_equipments; }
     int equipmentCount() const { return static_cast<int>(m_equipments.size()); }
-    bool canEquip() const { return equipmentCount() < MAX_EQUIP_SLOTS; }
+    int maxEquipSlots() const { return m_maxEquipSlots; }
+    bool canEquip() const { return equipmentCount() < m_maxEquipSlots; }
     void recalcEquipBonuses(); // 重新计算装备加成总和
 
 private:
@@ -129,11 +129,12 @@ private:
     int m_bonusSpeed = 0; // 来自羁绊的速度加成
 
     // 装备系统
-    std::vector<std::shared_ptr<Equipment>> m_equipments;        // 当前装备列表（最多 MAX_EQUIP_SLOTS 件）
-    int m_equipBonusAtk = 0;    // 来自装备的攻击力加成
-    int m_equipBonusMaxHp = 0;  // 来自装备的最大生命值加成
+    int m_maxEquipSlots = 1;           // 每个单位最多装备数量（1星=1，≥2星=2）
+    std::vector<std::shared_ptr<Equipment>> m_equipments; // 当前装备列表
+    int m_equipBonusAtk = 0; // 来自装备的攻击力加成
+    int m_equipBonusMaxHp = 0; // 来自装备的最大生命值加成
     int m_equipBonusMaxMana = 0;// 来自装备的最大法力值加成
-    int m_equipBonusSpeed = 0;  // 来自装备的速度加成
+    int m_equipBonusSpeed = 0; // 来自装备的速度加成
 
 };
 

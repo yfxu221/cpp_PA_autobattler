@@ -9,7 +9,10 @@
 #include "entity/unitdata.h"
 #include "entity/equipmentdata.h"
 #include "gui/equipslotitem.h"
+#include <QDebug>
 #include <cstdlib>
+#include <algorithm>
+#include <set>
 
 namespace {
 constexpr qreal kZGrid = 0.0; // 网格z坐标
@@ -532,6 +535,34 @@ void Game::onBattleFinished(BattleResult result) {
         m_settlementInfo.enemyGoldAfter = m_enemy.gold() + m_battleIndex * 5;
         m_settlementInfo.isGameOver = (m_settlementInfo.playerHpAfter <= 0);
     }
+    // 掉落判定，敌方每个死亡单位按星级独立计算，上限 3 件
+    m_settlementInfo.droppedEquipmentKeys.clear();
+    {
+        constexpr int kMaxDrops = 3;
+        int dropCount = 0;
+        auto& reg = *EquipmentRegistry::instance();
+        const auto keys = reg.allKeys();
+        for (Unit* unit : m_battleUnits) {
+            if (dropCount >= kMaxDrops) break;
+            if (!unit || unit->owner() != Owner::EnemyCtrl) continue;
+            if (unit->isAlive()) continue;
+
+            double dropChance = 0.0;
+            switch (unit->starLevel()) {
+            case 1: dropChance = 0.08; break; // 1星 8%
+            case 2: dropChance = 0.25; break; // 2星 25%
+            case 3: dropChance = 0.55; break; // 3星 55%
+            default: dropChance = 0.08; break;
+            }
+
+            if (!keys.isEmpty() && (rand() % 1000) < static_cast<int>(dropChance * 1000)) {
+                m_settlementInfo.droppedEquipmentKeys.append(keys[rand() % keys.size()]);
+                ++dropCount;
+                qDebug() << "掉落装备 (" << unit->starLevel() << "星):"
+                         << m_settlementInfo.droppedEquipmentKeys.last();
+            }
+        }
+    }
     startSettlement(); // 进入结算阶段
     
 }
@@ -788,11 +819,19 @@ void Game::sellUnit(int unitId) {
 
     // 出售前将单位身上的装备返还装备栏
     if (m_equipBar) {
+        std::vector<std::shared_ptr<Equipment>> overflowEqs; // 暂存溢出的装备
         while (unit->equipmentCount() > 0) {
             auto eq = unit->unequip(0);
-            if (eq) {
-                m_equipBar->addEquipment(eq);
+            if (!eq) continue;
+            if (!m_equipBar->addEquipment(eq)) {
+                overflowEqs.push_back(eq); // 栏满暂存
             }
+        }
+        if (!overflowEqs.empty()) {
+            m_pendingOverflowEquipments = std::move(overflowEqs);
+            m_pendingOverflowContext = LootDialog::LootContext::Unequip;
+            m_pendingOverflowUnitId = -1; // 单位已售出，无需回滚
+            emit equipBarOverflow(); // 通知 UI 显示溢出装备对话框
         }
     }
 
@@ -876,8 +915,7 @@ void Game::tryMergeStar(Unit* newUnit)
     tryMergeStar(keep);
 }
 
-// ========== 装备栏 ==========
-
+// 装备栏
 void Game::buildEquipBar()
 {
     const qreal colSpacing = m_radius * qSqrt(3.0);
@@ -895,6 +933,10 @@ void Game::buildEquipBar()
 
     // 测试装备
     auto& reg = *EquipmentRegistry::instance();
+    m_equipBar->addEquipment(reg.createEquipment("bf_sword"));
+    m_equipBar->addEquipment(reg.createEquipment("giant_belt"));
+    m_equipBar->addEquipment(reg.createEquipment("tear"));
+    m_equipBar->addEquipment(reg.createEquipment("recurve_bow"));
     m_equipBar->addEquipment(reg.createEquipment("bf_sword"));
     m_equipBar->addEquipment(reg.createEquipment("giant_belt"));
     m_equipBar->addEquipment(reg.createEquipment("tear"));
@@ -1020,11 +1062,57 @@ void Game::handleEquipUnequip(int unitId, int equipIndex)
     if (!unit || unit->owner() != Owner::PlayerCtrl) return;
 
     auto eq = unit->unequip(equipIndex);
-    if (eq && m_equipBar) {
-        m_equipBar->addEquipment(eq);
+    if (!eq || !m_equipBar) return;
+
+    // 先尝试直接放回空位
+    if (m_equipBar->addEquipment(eq)) {
+        recalculateSynergies();
+        syncFromBoard();
+        return;
     }
 
+    // 装备栏满 → 弹出 LootDialog 处理
+    m_pendingOverflowEquipments.clear();
+    m_pendingOverflowEquipments.push_back(eq);
+    m_pendingOverflowContext = LootDialog::LootContext::Unequip;
+    m_pendingOverflowUnitId = unitId;
+    emit equipBarOverflow();
+    // 先不调用 recalculateSynergies/syncFromBoard，等LootDialog处理完毕后由resolveEquipOverflow统一刷新
+}
+
+void Game::resolveEquipOverflow(const LootDialog::LootResult& result)
+{
+    if (result.cancelled) {
+        // 用户点 × 关闭 → 回滚：把暂存装备放回原单位
+        if (m_pendingOverflowUnitId >= 0) {
+            Unit* unit = findUnitById(m_pendingOverflowUnitId);
+            if (unit) {
+                for (auto& eq : m_pendingOverflowEquipments) {
+                    if (eq) unit->equip(eq);
+                }
+            }
+        }
+        // 单位已售出（unitId == -1）且用户取消 → 装备丢了就丢了
+    } else {
+        // 先丢弃选中的装备栏槽位
+        // 从高 index 向低 index 删除，避免索引偏移
+        std::vector<int> sortedDiscards(result.discardBarIndices.begin(),
+                                         result.discardBarIndices.end());
+        std::sort(sortedDiscards.begin(), sortedDiscards.end(), std::greater<int>());
+        for (int idx : sortedDiscards) {
+            m_equipBar->removeEquipment(idx);
+        }
+
+        // 把未标记丢弃的新装备放入空位
+        for (size_t i = 0; i < m_pendingOverflowEquipments.size(); ++i) {
+            if (result.discardNewIndices.count(static_cast<int>(i)) > 0) continue;
+            m_equipBar->addEquipment(m_pendingOverflowEquipments[i]);
+        }
+    }
+
+    m_pendingOverflowEquipments.clear();
+    m_pendingOverflowUnitId = -1;
+    m_equipBar->refreshDisplay();
     recalculateSynergies();
     syncFromBoard();
-    emit stateUpdated();
 }

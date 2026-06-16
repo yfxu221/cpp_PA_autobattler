@@ -38,6 +38,9 @@ public:
 
     void clear(); // 清空所有槽位
 
+    // 获取所有槽位的装备快照
+    std::vector<std::shared_ptr<Equipment>> allEquipments() const;
+
 private:
     QGraphicsScene* m_scene = nullptr;
     std::vector<EquipSlotItem*> m_slots;

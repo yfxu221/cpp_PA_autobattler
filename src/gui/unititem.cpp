@@ -342,9 +342,9 @@ void UnitItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 QRectF UnitItem::equipIconRect(int index) const
 {
     constexpr double kIconSize = 14.0;
-    constexpr double kGap      = 2.0;
-    constexpr double kStartX   = 18.0;
-    constexpr double kStartY   = 8.0;
+    constexpr double kGap = 2.0;
+    constexpr double kStartX = 18.0;
+    constexpr double kStartY = 8.0;
 
     const double x = kStartX - index * (kIconSize + 0.5 * kGap);
     const double y = kStartY + index * (kIconSize + 0.6 * kGap);
@@ -360,7 +360,7 @@ void UnitItem::drawEquipments(QPainter* painter)
 
     constexpr double kCornerR = 3.0;
 
-    for (size_t i = 0; i < equips.size() && i < static_cast<size_t>(Unit::MAX_EQUIP_SLOTS); ++i) {
+    for (size_t i = 0; i < equips.size() && i < static_cast<size_t>(m_unit->maxEquipSlots()); ++i) {
         if (!equips[i]) continue;
 
         const QRectF iconRect = equipIconRect(static_cast<int>(i));
@@ -387,7 +387,7 @@ int UnitItem::hitTestEquipIcon(const QPointF& localPos) const
     const auto& equips = m_unit->equipments();
     if (equips.empty()) return -1;
 
-    for (size_t i = 0; i < equips.size() && i < static_cast<size_t>(Unit::MAX_EQUIP_SLOTS); ++i) {
+    for (size_t i = 0; i < equips.size() && i < static_cast<size_t>(m_unit->maxEquipSlots()); ++i) {
         if (!equips[i]) continue;
         if (equipIconRect(static_cast<int>(i)).contains(localPos))
             return static_cast<int>(i);

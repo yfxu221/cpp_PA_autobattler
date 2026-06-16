@@ -85,3 +85,17 @@ void EquipBar::clear()
     }
     m_slots.clear();
 }
+
+std::vector<std::shared_ptr<Equipment>> EquipBar::allEquipments() const
+{
+    std::vector<std::shared_ptr<Equipment>> result;
+    result.reserve(m_slots.size());
+    for (const auto* s : m_slots) {
+        if (s) {
+            result.push_back(s->equipment());
+        } else {
+            result.push_back(nullptr);
+        }
+    }
+    return result;
+}
