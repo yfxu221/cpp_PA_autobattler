@@ -11,6 +11,7 @@ QColor traitColor(const QString& trait) {
 }
 
 int Unit::s_nextId = 0; // 静态成员变量初始化，确保每个单位都有一个唯一的ID，从0开始递增
+int Unit::s_nextBuffInstanceId = 0; // Buff 实例 ID 分配器
 
 Unit::Unit(const QString& key, const QString& name, int maxHp, int atk, int range, int maxMana, int starLevel, int speed, const QSet<QString>& traits, Owner owner, const QString& spritePath, const QString& type, int attackCooldown, int price)
     : m_id(s_nextId++)
@@ -38,7 +39,23 @@ Unit::Unit(const QString& key, const QString& name, int maxHp, int atk, int rang
 
 int Unit::atk() const
 {
-    return static_cast<int>(m_baseAtk * starMultiplier(m_starLevel)) + m_bonusAtk + m_equipBonusAtk;
+    const int base = static_cast<int>(m_baseAtk * starMultiplier(m_starLevel));
+    const int bonus = m_bonusAtk + m_equipBonusAtk;
+    const float buffMod = statModSum(BuffStat::ATK);
+    return static_cast<int>((base + bonus) * (1.0f + buffMod));
+}
+
+int Unit::maxHp() const
+{
+    return static_cast<int>(m_baseMaxHp * starMultiplier(m_starLevel))
+           + m_bonusMaxHp + m_equipBonusMaxHp;
+}
+
+int Unit::maxMana() const
+{
+    const int base = m_maxMana + m_bonusMaxMana + m_equipBonusMaxMana;
+    const float buffMod = statModSum(BuffStat::MaxMana);
+    return std::max(5, static_cast<int>(base * (1.0f + buffMod)));
 }
 
 
@@ -149,4 +166,112 @@ std::shared_ptr<Equipment> Unit::unequip(int index)
     m_equipments.erase(m_equipments.begin() + index);
     recalcEquipBonuses();
     return removed;
+}
+
+
+// Buff / 状态效果系统
+float Unit::statModSum(BuffStat stat) const
+{
+    float sum = 0.0f;
+    for (const auto& buff : m_buffs) {
+        const BuffDef* def = BuffRegistry::instance()->get(buff.buffKey);
+        if (def && def->category == BuffCategory::StatMod && def->stat == stat) {
+            sum += buff.magnitude;
+        }
+    }
+    return sum;
+}
+
+void Unit::addBuff(const BuffInstance& buff)
+{
+    const BuffDef* def = BuffRegistry::instance()->get(buff.buffKey);
+    if (!def) return;
+
+    switch (def->stackRule) {
+
+    case BuffStackRule::Refresh:
+        // 同 key → 刷新时间 + 取绝对值最大的效果
+        for (auto& existing : m_buffs) {
+            if (existing.buffKey == buff.buffKey) {
+                const int newRemaining = std::max(existing.remainingTicks, buff.totalTicks);
+                if (newRemaining > existing.remainingTicks)
+                    existing.totalTicks = buff.totalTicks;
+                existing.remainingTicks = newRemaining;
+                if (std::abs(buff.magnitude) > std::abs(existing.magnitude))
+                    existing.magnitude = buff.magnitude;
+                return;
+            }
+        }
+        break;
+
+    case BuffStackRule::UniquePerSource:
+        // 同 source + 同 key → Refresh；异 source → 独立实例
+        for (auto& existing : m_buffs) {
+            if (existing.buffKey == buff.buffKey && existing.sourceUnitId == buff.sourceUnitId) {
+                const int newRemaining = std::max(existing.remainingTicks, buff.totalTicks);
+                if (newRemaining > existing.remainingTicks)
+                    existing.totalTicks = buff.totalTicks;
+                existing.remainingTicks = newRemaining;
+                if (std::abs(buff.magnitude) > std::abs(existing.magnitude))
+                    existing.magnitude = buff.magnitude;
+                return;
+            }
+        }
+        break;
+
+    case BuffStackRule::Independent:
+        // 总是新增实例
+        break;
+    }
+
+    // 未命中任何合并规则 → 添加新实例
+    BuffInstance newBuff = buff;
+    newBuff.instanceId = s_nextBuffInstanceId++;
+    m_buffs.push_back(newBuff);
+}
+
+int Unit::processBuffsPreAction()
+{
+    int totalDotDamage = 0;
+
+    for (auto& buff : m_buffs) {
+        const BuffDef* def = BuffRegistry::instance()->get(buff.buffKey);
+
+        // Dot 类：累积本 tick 伤害
+        if (def && def->category == BuffCategory::Dot) {
+            totalDotDamage += static_cast<int>(buff.magnitude);
+        }
+
+        // 所有 buff：持续时间递减
+        buff.remainingTicks--;
+    }
+
+    return totalDotDamage;
+}
+
+void Unit::removeExpiredBuffs()
+{
+    m_buffs.erase(
+        std::remove_if(m_buffs.begin(), m_buffs.end(),
+                       [](const BuffInstance& b) { return b.remainingTicks <= 0; }),
+        m_buffs.end());
+
+    // buff 移除可能导致 maxMana 下降，重新 clamp 法力值
+    m_mana = std::clamp(m_mana, 0, maxMana());
+}
+
+void Unit::clearBuffs()
+{
+    m_buffs.clear();
+}
+
+bool Unit::isDisabled() const
+{
+    for (const auto& buff : m_buffs) {
+        const BuffDef* def = BuffRegistry::instance()->get(buff.buffKey);
+        if (def && def->category == BuffCategory::Control) {
+            return true;
+        }
+    }
+    return false;
 }

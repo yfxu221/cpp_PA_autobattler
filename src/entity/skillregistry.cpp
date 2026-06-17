@@ -1,6 +1,7 @@
 #include "skillregistry.h"
 #include "skills/SingleTargetedSkill.h"
 #include "skills/MultiTargetedSkill.h"
+#include "skills/BuffSingleTargetSkill.h"
 
 #include <QCoreApplication>
 #include <QDebug>
@@ -66,6 +67,7 @@ bool SkillRegistry::load(const QString& jsonPath) { //  加载 skills.json
         def.name = obj["name"].toString();
         def.strategy = obj["strategy"].toString();
         def.params = obj["params"].toObject();
+        def.buffs  = obj["buffs"].toArray();
 
         if (def.key.isEmpty()) {
             qWarning() << "SkillRegistry: entry missing 'key', skipping";
@@ -112,6 +114,13 @@ std::unique_ptr<Skill> SkillRegistry::createSkill(const QString& key) const {
         if (params.name.isEmpty()) // 如果 JSON 中没有 name 字段，就用 SkillDef 的 name 字段
             params.name = def->name;
         return std::make_unique<MultiTargetedSkill>(params);
+    }
+
+    if (def->strategy == "BuffSingleTargeted") {
+        auto params = BuffSingleTargetParams::fromJson(def->params, def->buffs);
+        if (params.name.isEmpty())
+            params.name = def->name;
+        return std::make_unique<BuffSingleTargetSkill>(params);
     }
 
     qWarning() << "SkillRegistry: unknown strategy" << def->strategy

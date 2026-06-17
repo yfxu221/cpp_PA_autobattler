@@ -1,0 +1,24 @@
+[
+    {
+        "key": "stun",
+        "category": "Control",
+        "stackRule": "refresh"
+    },
+    {
+        "key": "dot",
+        "category": "Dot",
+        "stackRule": "UniquePerSource"
+    },
+    {
+        "key": "atk_affect",
+        "category": "StatMod",
+        "stat": "ATK",
+        "stackRule": "refresh"
+    },
+    {
+        "key": "mana_affect",
+        "category": "StatMod",
+        "stat": "MaxMana",
+        "stackRule": "refresh"
+    }
+]

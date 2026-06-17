@@ -38,5 +38,39 @@
             "areaCenter": "Caster",
             "areaRange": 2
         }
+    },
+    {
+        "key": "stunStrike",
+        "strategy": "BuffSingleTargeted",
+        "name": "震荡猛击",
+        "params": {
+            "targetType": "Enemy",
+            "selectType": "Nearest",
+            "castRange": 1
+        },
+        "buffs": [
+            {
+                "buffKey": "stun",
+                "duration": 2
+            }
+        ]
+    },
+    {
+        "key": "poisonBlade",
+        "strategy": "BuffSingleTargeted",
+        "name": "毒刃",
+        "params": {
+            "targetType": "Enemy",
+            "selectType": "Nearest",
+            "castRange": 1
+        },
+        "buffs": [
+            {
+                "buffKey": "dot",
+                "duration": 3,
+                "valueType": "fixed",
+                "value": 5
+            }
+        ]
     }
 ]

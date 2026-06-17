@@ -10,6 +10,7 @@
 #include "skill.h"
 #include "synergyregistry.h"
 #include "equipment.h"
+#include "buffregistry.h"
 #include <vector>
 
 enum Owner{
@@ -59,11 +60,11 @@ public:
     bool hasTrait(const QString& trait) const { return m_traits.contains(trait); } // 检查单位是否具有特定的羁绊
     void takeDamage(int damage) { m_hp = std::clamp(m_hp - damage, 0, maxHp()); } // 受到伤害，减少生命值，但不低于0
     Owner owner() const { return m_owner; } // 获取单位的所有者，表示是玩家控制还是敌人控制
-    int maxHp() const { return static_cast<int>(m_baseMaxHp * starMultiplier(m_starLevel)) + m_bonusMaxHp + m_equipBonusMaxHp; } // 获取单位的最大生命值（随星级缩放）
+    int maxHp() const; // 获取单位的最大生命值（随星级缩放，含 buff 修正）
     int hp() const { return m_hp; } // 获取单位当前的生命值
     int atk() const; // 获取单位的攻击力
     int range() const { return m_range; } // 获取单位的攻击范围
-    int maxMana() const { return std::max(5, m_maxMana + m_bonusMaxMana + m_equipBonusMaxMana); } // 获取单位的最大法力值（最低为5）
+    int maxMana() const; // 获取单位的最大法力值（最低为5，含 buff 修正）
     int mana() const { return m_mana; } // 获取单位当前的法力值
     int starLevel() const { return m_starLevel; } // 获取单位的星级
     const QSet<QString>& traits() const { return m_traits; } // 获取单位的羁绊集合
@@ -86,6 +87,14 @@ public:
     const std::shared_ptr<Skill>& skill() const {return m_skill;} // 获取单位的技能
     bool hasSkill() const { return m_skill != nullptr; } // 检查单位是否拥有技能
     bool canUseSkill() const {return hasSkill() && m_mana >= maxMana();} // 检查单位是否可以使用技能（拥有技能且法力值足够）
+
+    // Buff / 状态效果系统
+    void addBuff(const BuffInstance& buff); // 添加 buff（内部处理叠加规则）
+    int  processBuffsPreAction(); // 每 tick 调用：DoT 伤害累积 + duration--，返回本 tick 的 DoT 总伤害
+    void removeExpiredBuffs(); // 清理 duration <= 0 的 buff 实例
+    void clearBuffs(); // 战斗结束清空所有 buff
+    bool isDisabled() const; // 是否有 Control 类 buff（眩晕等），导致无法行动
+    const QVector<BuffInstance>& buffs() const { return m_buffs; } // 只读访问
 
     void upgradeStar(); // 升星：starLevel+1，按比例调整血量
     static double starMultiplier(int starLevel); // 星级属性倍率：1星=1.0, 2星=1.8, 3星=3.24
@@ -132,12 +141,18 @@ private:
     int m_bonusSpeed = 0; // 来自羁绊的速度加成
 
     // 装备系统
-    int m_maxEquipSlots = 1;           // 每个单位最多装备数量（1星=1，≥2星=2）
+    int m_maxEquipSlots = 1; // 每个单位最多装备数量（1星=1，≥2星=2）
     std::vector<std::shared_ptr<Equipment>> m_equipments; // 当前装备列表
     int m_equipBonusAtk = 0; // 来自装备的攻击力加成
     int m_equipBonusMaxHp = 0; // 来自装备的最大生命值加成
     int m_equipBonusMaxMana = 0;// 来自装备的最大法力值加成
     int m_equipBonusSpeed = 0; // 来自装备的速度加成
+
+    // Buff 系统
+    QVector<BuffInstance> m_buffs; // 当前生效的 buff 实例列表
+    static int s_nextBuffInstanceId; // 分配 instanceId（全局递增）
+
+    float statModSum(BuffStat stat) const;  // 计算该属性的所有 StatMod buff 修正值总和
 
 };
 

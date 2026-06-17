@@ -31,12 +31,21 @@ struct TargetInfo {
     bool isPrimary = true; // 是否主目标
 };
 
+// 技能附带的 buff 施加信息 — 由 BuffSingleTargetSkill 等产生
+struct BuffApplication {
+    Unit* target = nullptr;
+    QString buffKey;  // 对应 BuffDef::key
+    int duration = 0;  // 持续 tick 数
+    float magnitude = 0.0f;// 效果值（施放时计算，之后不变）
+};
+
 struct SkillResult {
     struct HitInfo {
         Unit* target = nullptr;
         int value = 0; // 正数=治疗量, 负数=伤害量
     };
     QVector<HitInfo> hits;
+    QVector<BuffApplication> appliedBuffs; // buff 技能产生的持续效果
     bool success = false; // 是否成功释放
 };
 
@@ -68,7 +77,7 @@ public:
 
     // 执行技能：给定施法者、全场单位和选定的目标，计算并返回技能效果
     /// @return HitInfo.value 正数=治疗量, 负数=伤害量
-    SkillResult execute(Unit& caster, const QVector<Unit*>& allUnits);
+    virtual SkillResult execute(Unit& caster, const QVector<Unit*>& allUnits);
 
 protected:
     Unit* distanceLess(const Unit& caster, Unit* a, Unit* b) const; 

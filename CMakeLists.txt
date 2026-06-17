@@ -40,7 +40,9 @@ add_executable(Synera_Starter ${SOURCES} ${HEADERS}
     src/entity/equipmentdata.cpp
     src/gui/equipslotitem.cpp
     src/gui/equipbar.cpp
-    src/core/enemyspawner.cpp)
+    src/core/enemyspawner.cpp
+    src/entity/buffregistry.cpp
+    src/entity/skills/BuffSingleTargetSkill.cpp)
 
 target_include_directories(Synera_Starter PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -62,4 +64,4 @@ endif()
 
 if(APPLE)
     set_target_properties(Synera_Starter PROPERTIES MACOSX_BUNDLE TRUE)
-endif()
+endif() 

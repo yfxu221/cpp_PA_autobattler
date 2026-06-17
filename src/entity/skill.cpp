@@ -111,8 +111,8 @@ Unit* Skill::highestAtkEnemy(const Unit& caster, const QVector<Unit*>& allUnits)
     if (enemies.isEmpty()) {
         return nullptr;
     }
-    return *std::max_element(enemies.begin(), enemies.end(), 
-    [this, &caster](Unit* a, Unit* b) { return Skill::attackGreater(caster, a, b) == a; });
+    return *std::max_element(enemies.begin(), enemies.end(),
+    [this, &caster](Unit* a, Unit* b) { return Skill::attackGreater(caster, a, b) == b; });
 }
 
 QVector<Unit*> Skill::UnitInRange(const Unit* center, const QVector<Unit*>& others, int range) const {

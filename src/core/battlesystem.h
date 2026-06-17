@@ -68,6 +68,9 @@ private:
     void skillAction(QList<PlannedAction>& actions);
     void makeSkill(Unit* caster, const QVector<Unit*>& allUnits);
 
+    void processBuffsPreActions();  // tick 开头：DoT 累伤 + duration--
+    void processBuffsPostActions(); // tick 末尾：清理过期 buff
+
     QList<Unit*> getUnitsByOwner(Owner owner) const;
     QSet<QPoint> getOccupiedPositions() const;
     QVector<Unit*> getBoardUnits() const;

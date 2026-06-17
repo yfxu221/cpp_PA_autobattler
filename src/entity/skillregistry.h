@@ -5,6 +5,7 @@
 #include <QMap>
 #include <QList>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <memory>
 
 #include "skill.h"
@@ -13,8 +14,9 @@
 struct SkillDef {
     QString key;
     QString name;
-    QString strategy; // 策略名
-    QJsonObject params; // 策略专属参数，透传给 XxxParams::fromJson
+    QString strategy;     // 策略名
+    QJsonObject params;   // 策略专属参数，透传给 XxxParams::fromJson
+    QJsonArray buffs;     // BuffSingleTargeted 等策略的 buff 列表
 };
 
 

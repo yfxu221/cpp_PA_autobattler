@@ -103,21 +103,26 @@ void BattleSystem::updateUnits()
 }
 
 void BattleSystem::onBattleTick() {
+    processBuffsPreActions(); // buff 预处理：DoT 累伤 + 所有 buff duration--
+
+    // 决定每个单位的行动（眩晕单位直接跳过）
     QList<PlannedAction> actions;
-    for(Unit* unit : *m_units){
-        if(unit->isAlive()){
+    for (Unit* unit : *m_units) {
+        if (unit->isAlive()) {
             actions.push_back(decideAction(unit));
         }
     }
+
     resolveActions(actions);
     resolveDamage();
+    processBuffsPostActions(); // 清理过期buff
     updateUnits();
     resolveDeaths();
 
     emit stateUpdated();
     BattleResult result = checkEndCondition();
     if (result != BattleResult::Ongoing) {
-        battleFinished(result);   // 战斗结束，通知 Game 进入结算
+        battleFinished(result);
         return;
     }
 }
@@ -127,6 +132,12 @@ PlannedAction BattleSystem::decideAction(Unit* unit) {
     if (!m_board->isBoardPosition(unit->position())) {
         unit->setState(UnitState::Idle);
         return {unit, QPoint(-1,-1), {}};
+    }
+
+    // 被控制（眩晕等）→ 本 tick 无法行动
+    if (unit->isDisabled()) {
+        unit->setState(UnitState::Idle);
+        return {unit, QPoint(-1, -1), {}};
     }
 
     // 优先释放技能
@@ -255,9 +266,24 @@ void BattleSystem::makeSkill(Unit* caster, const QVector<Unit*>& allUnits) {
     if (!skill) return;
     SkillResult skillResult = skill->execute(*caster, allUnits);
     if (!skillResult.success) return;
+
+    // 即时伤害 / 治疗
     for (const auto& hit : skillResult.hits) {
-        m_pendingDamageEvents.append({caster, {hit.target}, -hit.value}); // HitInfo.value 正数=治疗量, 负数=伤害量
+        m_pendingDamageEvents.append({caster, {hit.target}, -hit.value});
     }
+
+    // Buff 挂载
+    for (const auto& ba : skillResult.appliedBuffs) {
+        if (!ba.target || !ba.target->isAlive()) continue;
+        BuffInstance instance;
+        instance.buffKey = ba.buffKey;
+        instance.sourceUnitId = caster->id();
+        instance.remainingTicks = ba.duration;
+        instance.totalTicks = ba.duration;
+        instance.magnitude = ba.magnitude;
+        ba.target->addBuff(instance);
+    }
+
     caster->setMana(0); // 使用技能后法力值归零
 }
 
@@ -334,4 +360,24 @@ QVector<Unit*> BattleSystem::getBoardUnits() const {
         }
     }
     return boardUnits;
+}
+
+void BattleSystem::processBuffsPreActions()
+{
+    for (Unit* unit : *m_units) {
+        if (!unit->isAlive()) continue;
+        const int dotDamage = unit->processBuffsPreAction();
+        if (dotDamage > 0) {
+            // DoT 伤害的来源记为 nullptr（无需击杀归属）
+            m_pendingDamageEvents.append({nullptr, {unit}, dotDamage});
+        }
+    }
+}
+
+void BattleSystem::processBuffsPostActions()
+{
+    for (Unit* unit : *m_units) {
+        if (!unit->isAlive()) continue;
+        unit->removeExpiredBuffs();
+    }
 }

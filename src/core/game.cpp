@@ -8,6 +8,7 @@
 #include <QtMath>
 #include "entity/unitdata.h"
 #include "entity/equipmentdata.h"
+#include "entity/buffregistry.h"
 #include "gui/equipslotitem.h"
 #include <QDebug>
 #include <cstdlib>
@@ -191,6 +192,10 @@ void Game::createStarterUnitsIfNeeded()
     if (!EquipmentRegistry::instance()->load("")) {
         qWarning() << "Game: 加载装备数据失败";
     }
+    BuffRegistry::instance(); // 加载 buff 类型
+    if (!BuffRegistry::instance()->load("")) {
+        qWarning() << "Game: 加载 buff 类型数据失败";
+    }
     UnitData* unitData = UnitData::instance();
     if (!unitData->load("")) {
         qFatal("无法加载单位数据文件");
@@ -215,7 +220,7 @@ void Game::createStarterUnitsIfNeeded()
         }
     }
 
-    // ━━ 首轮敌方单位生成 (battleIndex = 1) ━━
+    // 首轮敌方单位生成 (battleIndex = 1) 
     generateEnemyUnits();
 }
 

@@ -93,7 +93,7 @@ QVector<TargetInfo> SingleTargetedSkill::selectTargets(const Unit& caster, const
     case SelectType::HighestAtk:
         return {{ *std::max_element(candidates.begin(), candidates.end(),
             [this, &caster](Unit* a, Unit* b) {
-                return attackGreater(caster, a, b) == a;
+                return attackGreater(caster, a, b) == b;
             }), true }};
     }
     return {};
