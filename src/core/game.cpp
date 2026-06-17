@@ -56,6 +56,7 @@ void Game::initialize()
     buildScene();
     buildStoreScene();
     buildEquipBar();
+    populateEquipBarWithTestData();
     reset();
 }
 
@@ -747,9 +748,11 @@ void Game::populateStore() {
     }
 }
 
-void Game::buildStoreScene() {
-    // 初始化随机单位
-    populateStore();
+void Game::buildStoreScene(bool populateRandom) {
+    // 初始化随机单位（可选跳过，加载存档时由调用方恢复商店数据）
+    if (populateRandom) {
+        populateStore();
+    }
 
     // Store 自己管理显示
     m_store.buildDisplay(m_scene, m_radius);
@@ -962,17 +965,6 @@ void Game::buildEquipBar()
     m_equipBar = new EquipBar();
     m_equipBar->buildBar(m_scene, topLeft, kEquipSlots, kSlotSize, kSlotSpacing);
 
-    // 测试装备
-    auto& reg = *EquipmentRegistry::instance();
-    m_equipBar->addEquipment(reg.createEquipment("bf_sword"));
-    m_equipBar->addEquipment(reg.createEquipment("giant_belt"));
-    m_equipBar->addEquipment(reg.createEquipment("tear"));
-    m_equipBar->addEquipment(reg.createEquipment("recurve_bow"));
-    m_equipBar->addEquipment(reg.createEquipment("bf_sword"));
-    m_equipBar->addEquipment(reg.createEquipment("giant_belt"));
-    m_equipBar->addEquipment(reg.createEquipment("tear"));
-    m_equipBar->addEquipment(reg.createEquipment("recurve_bow"));
-
     // 连接拖拽信号
     for (int i = 0; i < kEquipSlots; ++i) {
         EquipSlotItem* slot = m_equipBar->slot(i);
@@ -987,6 +979,20 @@ void Game::buildEquipBar()
 
     // 更新 scene rect 以包含装备栏
     m_scene->setSceneRect(m_scene->itemsBoundingRect().adjusted(-20, -20, 15, 5));
+}
+
+void Game::populateEquipBarWithTestData()
+{
+    if (!m_equipBar) return;
+    auto& reg = *EquipmentRegistry::instance();
+    m_equipBar->addEquipment(reg.createEquipment("bf_sword"));
+    m_equipBar->addEquipment(reg.createEquipment("giant_belt"));
+    m_equipBar->addEquipment(reg.createEquipment("tear"));
+    m_equipBar->addEquipment(reg.createEquipment("recurve_bow"));
+    m_equipBar->addEquipment(reg.createEquipment("bf_sword"));
+    m_equipBar->addEquipment(reg.createEquipment("giant_belt"));
+    m_equipBar->addEquipment(reg.createEquipment("tear"));
+    m_equipBar->addEquipment(reg.createEquipment("recurve_bow"));
 }
 
 UnitItem* Game::findUnitItemAtScenePos(const QPointF& scenePos) const
@@ -1144,6 +1150,197 @@ void Game::resolveEquipOverflow(const LootDialog::LootResult& result)
     m_pendingOverflowEquipments.clear();
     m_pendingOverflowUnitId = -1;
     m_equipBar->refreshDisplay();
+    recalculateSynergies();
+    syncFromBoard();
+}
+
+
+//  存档系统
+SaveData Game::collectSaveData() const
+{
+    SaveData data;
+
+    // Player
+    data.playerGold    = m_player.gold();
+    data.playerHp      = m_player.hp();
+    data.playerMaxHp   = m_player.maxHp();
+    data.playerLevel   = m_player.level();
+    data.playerXp      = m_player.xp();
+    data.playerXpToNext = m_player.xpToNext();
+
+    // Enemy
+    data.enemyGold    = m_enemy.gold();
+    data.enemyHp      = m_enemy.hp();
+    data.enemyMaxHp   = m_enemy.maxHp();
+    data.enemyLevel   = m_enemy.level();
+    data.enemyXp      = m_enemy.xp();
+    data.enemyXpToNext = m_enemy.xpToNext();
+
+    // Game
+    data.battleIndex = m_battleIndex;
+
+    // Units（棋盘 + 备战席上所有单位）
+    for (const auto& uptr : m_units) {
+        if (!uptr) continue;
+        SaveData::UnitEntry ue;
+        ue.key       = uptr->key();
+        ue.name      = uptr->name();
+        ue.starLevel = uptr->starLevel();
+        ue.col       = uptr->position().x();
+        ue.row       = uptr->position().y();
+        ue.hp        = uptr->hp();
+        ue.mana      = uptr->mana();
+        ue.owner     = (uptr->owner() == Owner::PlayerCtrl) ? "player" : "enemy";
+
+        // 装备
+        for (const auto& eq : uptr->equipments()) {
+            if (eq) ue.equipmentKeys.append(eq->key);
+        }
+
+        // 技能
+        if (uptr->hasSkill()) {
+            ue.skillKey = uptr->skill()->name();
+        }
+
+        data.units.push_back(ue);
+    }
+
+    // Store（5 格）
+    for (int i = 0; i < Store::STORE_SIZE; ++i) {
+        Unit* u = m_store.getUnitAt(i);
+        if (u) {
+            data.storeSlots[i].key       = u->key();
+            data.storeSlots[i].starLevel = u->starLevel();
+            data.storeSlots[i].filled    = true;
+        } else {
+            data.storeSlots[i] = SaveData::StoreEntry{};
+        }
+    }
+
+    // EquipBar（8 格）
+    if (m_equipBar) {
+        for (int i = 0; i < m_equipBar->slotCount(); ++i) {
+            EquipSlotItem* slot = m_equipBar->slot(i);
+            if (slot && !slot->isEmpty()) {
+                auto eq = slot->equipment();
+                if (eq) data.equipBarKeys[i] = eq->key;
+            }
+        }
+    }
+
+    return data;
+}
+
+void Game::applySaveData(const SaveData& data)
+{
+    // 停止战斗（如果正在运行）
+    if (m_battleSystem && m_battleSystem->isRunning()) {
+        m_battleSystem->stop();
+    }
+
+    // 先销毁装备栏
+    delete m_equipBar;
+    m_equipBar = nullptr;
+
+    // 清空场景中剩余的所有 GUI 项
+    m_scene->clear();
+    m_sellZone = nullptr;
+    m_gridItems.clear();
+    m_unitItems.clear();
+    m_unitItemById.clear();
+    m_equipDragGhost = nullptr;
+
+    // 清空数据容器
+    m_units.clear();
+    m_unitsSnapshot.clear();
+    m_battleUnits.clear();
+    m_board.clear();
+    m_store.refresh();
+
+    // 重置拖拽状态
+    m_dragActive = false;
+    m_activeUnitId = -1;
+    m_sourceGrid = QPoint(-1, -1);
+    m_dragStartPlace = DragStartPlace::None;
+    m_equipDragActive = false;
+    m_activeEquipSlotIndex = -1;
+
+    // 恢复 Player
+    m_player.setGold(data.playerGold);
+    m_player.setHp(data.playerHp);
+    m_player.setLevel(data.playerLevel);
+    m_player.setXp(data.playerXp);
+    m_player.setXpToNext(data.playerXpToNext);
+
+    // 恢复 Enemy
+    m_enemy.setGold(data.enemyGold);
+    m_enemy.setHp(data.enemyHp);
+    m_enemy.setLevel(data.enemyLevel);
+    m_enemy.setXp(data.enemyXp);
+    m_enemy.setXpToNext(data.enemyXpToNext);
+
+    // 恢复 BattleIndex
+    m_battleIndex = data.battleIndex;
+
+    // 恢复所有 Unit
+    UnitData* unitData = UnitData::instance();
+    for (const auto& ue : data.units) {
+        Owner owner = (ue.owner == "player") ? Owner::PlayerCtrl : Owner::EnemyCtrl;
+        auto u = unitData->createUnit(ue.key, owner, ue.starLevel);
+        if (!u) {
+            qWarning() << "applySaveData: 无法创建单位" << ue.key;
+            continue;
+        }
+
+        u->setPosition(QPoint(ue.col, ue.row));
+        u->setHp(ue.hp);
+        u->setMana(ue.mana);
+
+        // 恢复装备
+        auto& eqReg = *EquipmentRegistry::instance();
+        for (const QString& ek : ue.equipmentKeys) {
+            auto eq = eqReg.createEquipment(ek);
+            if (eq) u->equip(eq);
+        }
+
+        m_board.addUnit(u.get(), u->position());
+        m_units.push_back(std::move(u));
+    }
+
+    // 重建棋盘 GUI（网格 + 单位项）
+    buildScene();
+
+    // 重建商店 GUI（不随机填充）
+    buildStoreScene(false);
+    // 从存档恢复商店
+    for (int i = 0; i < Store::STORE_SIZE; ++i) {
+        if (data.storeSlots[i].filled) {
+            auto u = unitData->createUnit(data.storeSlots[i].key,
+                                          Owner::PlayerCtrl,
+                                          data.storeSlots[i].starLevel);
+            if (u) m_store.addUnit(std::move(u), i);
+        }
+    }
+    m_store.refreshDisplay();
+
+    // 重建装备栏 GUI（不填测试数据）
+    buildEquipBar();
+    // 从存档恢复装备栏
+    {
+        auto& eqReg = *EquipmentRegistry::instance();
+        for (int i = 0; i < 8; ++i) {
+            if (!data.equipBarKeys[i].isEmpty()) {
+                auto eq = eqReg.createEquipment(data.equipBarKeys[i]);
+                if (eq) m_equipBar->setEquipment(i, eq);
+            }
+        }
+    }
+
+    // 设置阶段为 Preparation
+    m_phase = GamePhase::Preparation;
+    emit phaseChanged(m_phase);
+
+    // 重新计算羁绊并刷新
     recalculateSynergies();
     syncFromBoard();
 }

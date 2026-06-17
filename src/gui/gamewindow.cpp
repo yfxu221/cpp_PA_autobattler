@@ -2,6 +2,7 @@
 #include "core/game.h"
 #include "gui/settlementdialog.h"
 #include "gui/lootdialog.h"
+#include "gui/saveloaddialog.h"
 #include "entity/equipmentdata.h"
 #include <algorithm>
 #include <functional>
@@ -22,6 +23,8 @@ GameWindow::GameWindow(QWidget* parent)
     , m_resetButton(new QPushButton("Reset", this))
     , m_battleButton(new QPushButton("开始战斗", this))
     , m_buyXpButton(new QPushButton("购买2经验", this))
+    , m_saveButton(new QPushButton("存档", this))
+    , m_loadButton(new QPushButton("读档", this))
 {
     setupUI();
     m_game->initialize();
@@ -45,6 +48,39 @@ void GameWindow::onBattleButtonClicked() {
 
 void GameWindow::onBuyXpButtonClicked() {
     m_game->buyXp(2); // 购买2点经验
+}
+
+// 存档 / 读档
+void GameWindow::onSaveButtonClicked()
+{
+    if (!m_game || m_game->phase() != GamePhase::Preparation) return;
+
+    SaveLoadDialog dlg(SaveLoadDialog::Mode::Save, this); // 弹出保存对话框
+    if (dlg.exec() != QDialog::Accepted) return;
+
+    int slot = dlg.selectedSlot();
+    if (slot < 0) return;
+
+    SaveData data = m_game->collectSaveData();
+    if (SaveManager::saveToFile(slot, data, dlg.label())) {
+        refreshInfoBar(); // 刷新侧边栏
+    }
+}
+
+void GameWindow::onLoadButtonClicked()
+{
+    if (!m_game) return;
+
+    SaveLoadDialog dlg(SaveLoadDialog::Mode::Load, this);
+    if (dlg.exec() != QDialog::Accepted) return;
+
+    int slot = dlg.selectedSlot();
+    if (slot < 0) return;
+
+    auto data = SaveManager::loadFromFile(slot);
+    if (!data.has_value()) return;
+
+    m_game->applySaveData(data.value());
 }
 
 
@@ -187,6 +223,8 @@ void GameWindow::onPhaseChanged(GamePhase phase) {
         m_battleButton->setText("开始战斗");
         m_battleButton->setEnabled(true);
         m_resetButton->setEnabled(true);
+        m_saveButton->setEnabled(true);
+        m_loadButton->setEnabled(true);
         if (m_game->player()->xp() < m_game->player()->maxXp() && m_game->player()->gold() >= 2) {
             m_buyXpButton->setEnabled(true);
         } else {
@@ -198,12 +236,16 @@ void GameWindow::onPhaseChanged(GamePhase phase) {
         m_battleButton->setEnabled(false);
         m_resetButton->setEnabled(false);
         m_buyXpButton->setEnabled(false);
+        m_saveButton->setEnabled(false);
+        m_loadButton->setEnabled(false);
         break;
     case GamePhase::Settlement:
         m_battleButton->setText("结算中...");
         m_battleButton->setEnabled(false);
         m_resetButton->setEnabled(false);
         m_buyXpButton->setEnabled(false);
+        m_saveButton->setEnabled(false);
+        m_loadButton->setEnabled(false);
         break;
     }
 }
@@ -280,7 +322,7 @@ void GameWindow::setupUI()
         }
     )");
 
-    // ---- 左侧：游戏棋盘 ----
+    // 左侧：游戏棋盘
     m_view->setRenderHint(QPainter::Antialiasing, true); // 开启抗锯齿
     m_view->setDragMode(QGraphicsView::NoDrag); // 禁止拖动画布
     m_view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff); // 禁止水平滚动条
@@ -375,6 +417,8 @@ void GameWindow::setupUI()
     btnLayout->setSpacing(4);
     btnLayout->addWidget(m_buyXpButton);
     btnLayout->addWidget(m_battleButton);
+    btnLayout->addWidget(m_saveButton);
+    btnLayout->addWidget(m_loadButton);
     btnLayout->addWidget(m_resetButton);
     sideLayout->addLayout(btnLayout);
 
@@ -389,6 +433,12 @@ void GameWindow::setupUI()
 
     connect(m_battleButton, &QPushButton::clicked,
             this, &GameWindow::onBattleButtonClicked); // 连接"开始战斗"按钮的点击信号到槽函数
+
+    connect(m_saveButton, &QPushButton::clicked,
+            this, &GameWindow::onSaveButtonClicked); // 连接存档按钮
+
+    connect(m_loadButton, &QPushButton::clicked,
+            this, &GameWindow::onLoadButtonClicked); // 连接读档按钮
 
     connect(m_game, &Game::phaseChanged,
             this, &GameWindow::onPhaseChanged); // 连接游戏阶段变化信号到槽函数

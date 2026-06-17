@@ -14,6 +14,8 @@ public:
     void setHp(int hp) { m_hp = hp; } // 设置玩家的生命值
     void setGold(int gold) { m_gold = gold; } // 设置玩家的金币数量
     void setXp(int xp) { m_xp = xp; } // 设置玩家的经验值
+    void setLevel(int level) { m_level = level; } // 设置玩家的等级
+    void setXpToNext(int xpToNext) { m_xpToNext = xpToNext; } // 设置升级所需经验值
 
     int gold() const { return m_gold; } // 获取玩家当前的金币数量
     int hp() const { return m_hp; } // 获取玩家当前的生命值

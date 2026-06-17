@@ -21,6 +21,7 @@
 #include "gui/sellzoneitem.h"
 #include "gui/equipbar.h"
 #include "gui/lootdialog.h"
+#include "core/savemanager.h"
 
 class Unit;
 class QGraphicsScene;
@@ -97,6 +98,10 @@ public:
     void refreshStore(); // 刷新商店，生成新的单位列表
     EquipBar* equipBar() { return m_equipBar; } // 获取装备栏管理器
 
+    // 存档系统
+    SaveData collectSaveData() const;  // 收集当前游戏状态
+    void applySaveData(const SaveData& data); // 从存档数据恢复游戏状态
+
     // 装备栏溢出处理（卸装备/出售时装备栏满 → LootDialog）
     const std::vector<std::shared_ptr<Equipment>>& pendingOverflowEquipments() const { return m_pendingOverflowEquipments; }
     LootDialog::LootContext pendingOverflowContext() const { return m_pendingOverflowContext; }
@@ -120,7 +125,7 @@ private:
     void applyDrop(int unitId, const QPoint& target);
     void buildScene();
     void syncFromBoard();
-    void buildStoreScene();
+    void buildStoreScene(bool populateRandom = true);
     void populateStore(); // 随机填充商店 5 个单位（共享的随机生成逻辑）
 
     QPointF gridToWorld(int row, int col) const;
@@ -187,7 +192,8 @@ private:
     void sellUnit(int unitId);
     void tryMergeStar(Unit* newUnit); // 检查并执行升星合并（三合一）
 
-    void buildEquipBar(); // 构建装备栏 GUI
+    void buildEquipBar(); // 构建装备栏 GUI（仅 UI，不含数据）
+    void populateEquipBarWithTestData(); // 填充测试装备数据
     UnitItem* findUnitItemAtScenePos(const QPointF& scenePos) const; // 查找场景坐标处的单位图形项
     void generateEnemyUnits(); // 生成新一轮敌方单位（清旧+生新）
 

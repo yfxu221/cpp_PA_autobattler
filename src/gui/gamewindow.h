@@ -24,6 +24,8 @@ private slots:
     void onPhaseChanged(GamePhase phase);  // 根据阶段更新按钮状态
     void refreshInfoBar(); // 刷新侧边栏显示双方状态等信息
     void onBuyXpButtonClicked(); // 购买经验按钮点击事件处理函数
+    void onSaveButtonClicked(); // 存档按钮
+    void onLoadButtonClicked(); // 读档按钮
     void onSettlementReady(const SettlementInfo& info); // 结算界面显示
     void onEquipBarOverflow(); // 装备栏溢出弹窗
 
@@ -65,6 +67,8 @@ private:
     QPushButton* m_resetButton; // 重置按钮
     QPushButton* m_battleButton;   // "开始战斗"按钮
     QPushButton* m_buyXpButton; // 购买经验按钮
+    QPushButton* m_saveButton; // 存档按钮
+    QPushButton* m_loadButton; // 读档按钮
 };
 
 #endif // GAMEWINDOW_H

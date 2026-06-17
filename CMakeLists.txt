@@ -29,18 +29,20 @@ file(GLOB_RECURSE HEADERS
 add_executable(Synera_Starter ${SOURCES} ${HEADERS}
     src/core/pathfinder.cpp
     src/core/battlesystem.cpp
+    src/core/savemanager.cpp
+    src/core/enemyspawner.cpp
     src/gui/settlementdialog.cpp
     src/gui/storeslotitem.cpp
     src/gui/storerefreshbutton.cpp
+    src/gui/sellzoneitem.cpp
+    src/gui/equipslotitem.cpp
+    src/gui/equipbar.cpp
+    src/gui/saveloaddialog.cpp
     src/entity/skill.cpp
     src/entity/skills/SingleTargetedSkill.cpp
     src/entity/skills/MultiTargetedSkill.cpp
-    src/gui/sellzoneitem.cpp
     src/entity/synergyregistry.cpp
     src/entity/equipmentdata.cpp
-    src/gui/equipslotitem.cpp
-    src/gui/equipbar.cpp
-    src/core/enemyspawner.cpp
     src/entity/buffregistry.cpp
     src/entity/skills/BuffSingleTargetSkill.cpp)
 
@@ -64,4 +66,4 @@ endif()
 
 if(APPLE)
     set_target_properties(Synera_Starter PROPERTIES MACOSX_BUNDLE TRUE)
-endif() 
+endif()

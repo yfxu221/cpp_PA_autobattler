@@ -63,6 +63,10 @@ Unit* Store::getUnitAt(int index) const {
 }
 
 void Store::buildDisplay(QGraphicsScene* scene, double radius) {
+    // 清除旧 GUI 指针（场景重建时旧 QGraphicsItems 已被 Qt 销毁）
+    m_slotItems.clear();
+    m_refreshButton = nullptr;
+
     const double storeX = -150.0;
     const double startY = 35.0;
     const double slotSpacing = 92.0;
