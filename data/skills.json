@@ -51,7 +51,7 @@
         "buffs": [
             {
                 "buffKey": "stun",
-                "duration": 2
+                "duration": 12
             }
         ]
     },
@@ -67,7 +67,8 @@
         "buffs": [
             {
                 "buffKey": "dot",
-                "duration": 3,
+                "duration": 18,
+                "damageInterval": 6,
                 "valueType": "fixed",
                 "value": 5
             }

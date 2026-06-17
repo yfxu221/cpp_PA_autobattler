@@ -36,6 +36,7 @@ struct BuffApplication {
     Unit* target = nullptr;
     QString buffKey;  // 对应 BuffDef::key
     int duration = 0;  // 持续 tick 数
+    int damageInterval = 6;  // DoT 伤害间隔（tick数），默认6=300ms
     float magnitude = 0.0f;// 效果值（施放时计算，之后不变）
 };
 

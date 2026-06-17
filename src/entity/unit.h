@@ -44,6 +44,7 @@ public:
                 const QString& spritePath = QString(),
                 const QString& type = QString(),
                 int attackCooldown = 2,
+                int moveCooldown = 1,
                 int price = 100
                 );
     ~Unit() = default;
@@ -76,8 +77,14 @@ public:
     void setHp(int hp) { m_hp = std::clamp(hp, 0, maxHp()); } // 设置单位的生命值，确保不超过最大生命值且不低于0
     void setMana(int mana) { m_mana = std::clamp(mana, 0, maxMana()); } // 设置单位的法力值，确保不超过最大
     void processCooldown(); // 每tick调用：若冷却中则递减1（纯计数，不碰状态）
-    void resetCooldown();   // 攻击后调用：将冷却重置为最大值
+    void resetCooldown();   // 攻击后调用：将冷却重置为有效值（含装备加成）
     bool isCooldownReady() const { return m_currentCooldown <= 0; } // 检查单位是否准备好进行下一次攻击
+    int effectiveAttackCooldown() const; // 计算含装备攻速加成的实际攻击冷却
+    // 移动冷却
+    void processMoveCooldown(); // 每tick调用：若冷却中则递减1
+    void resetMoveCooldown(); // 移动后调用：将冷却重置为有效值（含装备加成）
+    bool isMoveCooldownReady() const { return m_currentMoveCooldown <= 0; }
+    int effectiveMoveCooldown() const;    // 计算含装备移速加成的实际移动冷却
     int speed() const { return m_speed + m_bonusSpeed + m_equipBonusSpeed; } // 获取单位的速度
     int price() const; // 获取单位的价格
 
@@ -131,7 +138,9 @@ private:
     QString m_type; // 单位类型，用于生成敌人时的启发式阵型选择
     UnitState m_state; // 单位的当前状态
     int m_attackCooldown; // 记录攻击冷却时间，单位为tick数
-    int m_currentCooldown = 0; // 当前剩余的冷却时间，单位为tick数
+    int m_currentCooldown = 0; // 当前剩余的攻击冷却时间，单位为tick数
+    int m_moveCooldown;  // 记录移动冷却时间，单位为tick数
+    int m_currentMoveCooldown = 0; // 当前剩余的移动冷却时间，单位为tick数
     int m_speed; //单位速度，影响移动优先级
     int m_price; //单位价格
     std::shared_ptr<Skill> m_skill; // 单位的技能，暂时假设每个单位只有一个技能
@@ -147,6 +156,8 @@ private:
     int m_equipBonusMaxHp = 0; // 来自装备的最大生命值加成
     int m_equipBonusMaxMana = 0;// 来自装备的最大法力值加成
     int m_equipBonusSpeed = 0; // 来自装备的速度加成
+    float m_equipAttackSpeedMod = 0.0f; // 来自装备的攻速百分比加成累加
+    float m_equipMoveSpeedMod = 0.0f; // 来自装备的移速百分比加成累加
 
     // Buff 系统
     QVector<BuffInstance> m_buffs; // 当前生效的 buff 实例列表

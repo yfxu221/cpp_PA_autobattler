@@ -99,6 +99,7 @@ void BattleSystem::updateUnits()
             continue;
         }
         unit->processCooldown();
+        unit->processMoveCooldown();
     }
 }
 
@@ -163,6 +164,11 @@ PlannedAction BattleSystem::decideAction(Unit* unit) {
     }
     // 否则移动到攻击范围内
     else{
+        // 移动冷却未就绪 → 本 tick 不能移动
+        if (!unit->isMoveCooldownReady()) {
+            unit->setState(UnitState::Idle);
+            return {unit, QPoint(-1, -1), {}};
+        }
         QList<QPoint> path = Pathfinder::findPath(unit->position(), target->position(), unit->range(), getOccupiedPositions(), m_board->BOARD_ROWS, m_board->BOARD_COLS);
         if(path.isEmpty() || path.size() <= 1) {
             unit->setState(UnitState::Idle);
@@ -231,6 +237,7 @@ void BattleSystem::moveAction(QList<PlannedAction>& actions)
 
 void BattleSystem::makeMove(Unit* unit, const QPoint& targetPos) {
     m_board->moveUnit(unit, targetPos);
+    unit->resetMoveCooldown();
 }
 
 void BattleSystem::attackAction(QList<PlannedAction>& actions){
@@ -281,6 +288,7 @@ void BattleSystem::makeSkill(Unit* caster, const QVector<Unit*>& allUnits) {
         instance.remainingTicks = ba.duration;
         instance.totalTicks = ba.duration;
         instance.magnitude = ba.magnitude;
+        instance.damageInterval = ba.damageInterval;
         ba.target->addBuff(instance);
     }
 

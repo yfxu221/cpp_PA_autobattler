@@ -7,6 +7,7 @@
 struct BuffSkillParam {
     QString buffKey;
     int duration; // 持续回合数
+    int damageInterval = 6; // DoT 伤害间隔（tick数），默认6=300ms
     ValueType valueType; // 计算数值的方式
     double ratio;
     int fixedValue;
@@ -31,11 +32,11 @@ public:
     explicit BuffSingleTargetSkill(const BuffSingleTargetParams& p);
     ~BuffSingleTargetSkill() override;
 
-    QString name()       const override { return m_p.name; }
+    QString name() const override { return m_p.name; }
     TargetType targetType() const override { return m_p.targetType; }
     SelectType selectType() const override { return m_p.selectType; }
-    ValueType valueType()  const override { return ValueType::fixed; } // buff 技能无统一伤害值
-    int castRange()      const override { return m_p.castRange; }
+    ValueType valueType() const override { return ValueType::fixed; } // buff 技能无统一伤害值
+    int castRange() const override { return m_p.castRange; }
 
     QVector<TargetInfo> selectTargets(
         const Unit& caster,

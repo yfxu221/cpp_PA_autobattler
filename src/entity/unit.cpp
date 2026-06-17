@@ -13,7 +13,7 @@ QColor traitColor(const QString& trait) {
 int Unit::s_nextId = 0; // 静态成员变量初始化，确保每个单位都有一个唯一的ID，从0开始递增
 int Unit::s_nextBuffInstanceId = 0; // Buff 实例 ID 分配器
 
-Unit::Unit(const QString& key, const QString& name, int maxHp, int atk, int range, int maxMana, int starLevel, int speed, const QSet<QString>& traits, Owner owner, const QString& spritePath, const QString& type, int attackCooldown, int price)
+Unit::Unit(const QString& key, const QString& name, int maxHp, int atk, int range, int maxMana, int starLevel, int speed, const QSet<QString>& traits, Owner owner, const QString& spritePath, const QString& type, int attackCooldown, int moveCooldown, int price)
     : m_id(s_nextId++)
     , m_key(key)
     , m_name(name)
@@ -32,6 +32,7 @@ Unit::Unit(const QString& key, const QString& name, int maxHp, int atk, int rang
     , m_traits(traits)
     , m_spritePath(spritePath)
     , m_attackCooldown(attackCooldown)
+    , m_moveCooldown(moveCooldown)
     , m_price(price)
     , m_maxEquipSlots(starLevel == 1 ? 1 : 2)
 {
@@ -84,7 +85,34 @@ void Unit::processCooldown()
 
 void Unit::resetCooldown()
 {
-    m_currentCooldown = m_attackCooldown;
+    m_currentCooldown = effectiveAttackCooldown();
+}
+
+int Unit::effectiveAttackCooldown() const
+{
+    // 基础冷却 / (1 + 装备攻速加成)，至少为 1
+    int raw = static_cast<int>(m_attackCooldown / (1.0f + m_equipAttackSpeedMod));
+    return std::max(1, raw);
+}
+
+// 移动冷却
+void Unit::processMoveCooldown()
+{
+    if (m_currentMoveCooldown > 0) {
+        --m_currentMoveCooldown;
+    }
+}
+
+void Unit::resetMoveCooldown()
+{
+    m_currentMoveCooldown = effectiveMoveCooldown();
+}
+
+int Unit::effectiveMoveCooldown() const
+{
+    // 基础冷却 / (1 + 装备移速加成)，至少为 1
+    int raw = static_cast<int>(m_moveCooldown / (1.0f + m_equipMoveSpeedMod));
+    return std::max(1, raw);
 }
 
 int Unit::price() const
@@ -137,6 +165,15 @@ void Unit::recalcEquipBonuses()
         m_equipBonusMaxHp += eq->bonusMaxHp;
         m_equipBonusMaxMana += eq->bonusMaxMana;
         m_equipBonusSpeed += eq->bonusSpeed;
+    }
+
+    // 装备百分比加成求和
+    m_equipAttackSpeedMod = 0.0f;
+    m_equipMoveSpeedMod = 0.0f;
+    for (const auto& eq : m_equipments) {
+        if (!eq) continue;
+        m_equipAttackSpeedMod += eq->bonusAttackSpeed;
+        m_equipMoveSpeedMod += eq->bonusMoveSpeed;
     }
 
     // 按差值调整 HP
@@ -199,6 +236,7 @@ void Unit::addBuff(const BuffInstance& buff)
                 existing.remainingTicks = newRemaining;
                 if (std::abs(buff.magnitude) > std::abs(existing.magnitude))
                     existing.magnitude = buff.magnitude;
+                existing.damageInterval = buff.damageInterval;
                 return;
             }
         }
@@ -214,6 +252,7 @@ void Unit::addBuff(const BuffInstance& buff)
                 existing.remainingTicks = newRemaining;
                 if (std::abs(buff.magnitude) > std::abs(existing.magnitude))
                     existing.magnitude = buff.magnitude;
+                existing.damageInterval = buff.damageInterval;
                 return;
             }
         }
@@ -237,9 +276,13 @@ int Unit::processBuffsPreAction()
     for (auto& buff : m_buffs) {
         const BuffDef* def = BuffRegistry::instance()->get(buff.buffKey);
 
-        // Dot 类：累积本 tick 伤害
+        // DoT 类：按间隔造成伤害
         if (def && def->category == BuffCategory::Dot) {
-            totalDotDamage += static_cast<int>(buff.magnitude);
+            if (buff.damageIntervalCounter <= 0) {
+                totalDotDamage += static_cast<int>(buff.magnitude);
+                buff.damageIntervalCounter = buff.damageInterval;
+            }
+            buff.damageIntervalCounter--;
         }
 
         // 所有 buff：持续时间递减

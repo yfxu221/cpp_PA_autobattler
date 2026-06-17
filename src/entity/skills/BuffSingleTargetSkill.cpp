@@ -53,6 +53,7 @@ BuffSkillParam BuffSkillParam::fromJson(const QJsonObject& json) {
     BuffSkillParam p;
     p.buffKey = json["buffKey"].toString();
     p.duration = json["duration"].toInt(0);
+    p.damageInterval = json["damageInterval"].toInt(6);
     p.valueType = stringToValueType(json["valueType"].toString());
     p.ratio = json["ratio"].toDouble(0.0);
     p.fixedValue = json["value"].toInt(0);
@@ -148,7 +149,7 @@ SkillResult BuffSingleTargetSkill::execute(Unit& caster, const QVector<Unit*>& a
         for (const auto& bp : m_p.buffs) {
             const float magnitude = calculateBuffMagnitude(
                 caster, *target, bp.valueType, bp.ratio, bp.fixedValue);
-            result.appliedBuffs.append({target, bp.buffKey, bp.duration, magnitude});
+            result.appliedBuffs.append({target, bp.buffKey, bp.duration, bp.damageInterval, magnitude});
         }
     }
 

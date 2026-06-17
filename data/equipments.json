@@ -32,7 +32,8 @@
         "bonusAtk": 5,
         "bonusMaxHp": 0,
         "bonusMaxMana": 0,
-        "bonusSpeed": 5,
+        "bonusSpeed": 0,
+        "bonusAttackSpeed": 0.2,
         "sprite": "assets/equipments/recurve_bow.png"
     },
     {

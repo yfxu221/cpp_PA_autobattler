@@ -10,7 +10,9 @@ struct Equipment {
     int bonusAtk = 0; // 攻击力加成
     int bonusMaxHp = 0; // 最大生命值加成
     int bonusMaxMana = 0; // 最大法力值加成
-    int bonusSpeed = 0; // 速度加成
+    int bonusSpeed = 0; // 速度加成（影响移动优先级）
+    float bonusAttackSpeed = 0.0f; // 攻速百分比加成（0.2 = +20%，减少攻击冷却）
+    float bonusMoveSpeed = 0.0f;   // 移速百分比加成（0.2 = +20%，减少移动冷却）
     QString spritePath; // 装备图标路径（为空时绘制文字回退）
 };
 

@@ -84,8 +84,7 @@ private:
     int m_tickCount = 0;
     QList<DamageEvent> m_pendingDamageEvents; // 记录当前tick内发生的所有伤害事件，统一处理
 
-    static constexpr int TICK_INTERVAL_MS = 300;
-    static constexpr int ATTACK_COOLDOWN_TICKS = 2;
+    static constexpr int TICK_INTERVAL_MS = 50;
 };
 
 #endif // BATTLESYSTEM_H

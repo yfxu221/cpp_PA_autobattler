@@ -75,6 +75,7 @@ bool UnitData::load(const QString& jsonPath)
         temp.maxMana = object.value("maxMana").toInt();
         temp.sprite = object.value("sprite").toString();
         temp.attackCooldown = object.value("attackCooldown").toInt();
+        temp.moveCooldown = object.value("moveCooldown").toInt(1);
         temp.speed = object.value("speed").toInt();
         temp.price = object.value("price").toInt();
         temp.skill = object.value("skill").toString();
@@ -112,7 +113,7 @@ std::unique_ptr<Unit> UnitData::createUnit(const QString& key, Owner owner, int 
     const UnitTemplate& temp = it.value();
     std::unique_ptr<Unit> unit = std::make_unique<Unit>(temp.key, temp.name, temp.maxHp, temp.atk, temp.range, temp.maxMana,
                                   starLevel, temp.speed, temp.traits, owner, temp.sprite, temp.type,
-                                  temp.attackCooldown, temp.price);
+                                  temp.attackCooldown, temp.moveCooldown, temp.price);
     if (!temp.skill.isEmpty()) {
     auto skill = SkillRegistry::instance()->createSkill(temp.skill);
     if (skill)

@@ -10,7 +10,7 @@
 
 struct UnitTemplate {  // JSON 反序列化后的结构体
     QString key, name;
-    int maxHp, atk, range, maxMana, attackCooldown, speed, price;
+    int maxHp, atk, range, maxMana, attackCooldown, moveCooldown, speed, price;
     QSet<QString> traits;
     QString sprite, skill, type;
 };

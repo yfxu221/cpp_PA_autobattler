@@ -67,6 +67,8 @@ bool EquipmentRegistry::load(const QString& jsonPath)
         eq.bonusMaxHp = obj["bonusMaxHp"].toInt(0);
         eq.bonusMaxMana = obj["bonusMaxMana"].toInt(0);
         eq.bonusSpeed = obj["bonusSpeed"].toInt(0);
+        eq.bonusAttackSpeed = static_cast<float>(obj["bonusAttackSpeed"].toDouble(0.0));
+        eq.bonusMoveSpeed = static_cast<float>(obj["bonusMoveSpeed"].toDouble(0.0));
         eq.spritePath = obj["sprite"].toString();
 
         if (eq.key.isEmpty()) {
