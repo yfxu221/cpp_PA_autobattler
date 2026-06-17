@@ -631,7 +631,6 @@ void Game::onBattleFinished(BattleResult result) {
 }
 
 void Game::onSettlementStart() {
-    // 待填充
     m_player.setHp(m_settlementInfo.playerHpAfter);
     m_player.setGold(m_settlementInfo.playerGoldAfter);
     m_enemy.setHp(m_settlementInfo.enemyHpAfter);
@@ -789,6 +788,27 @@ void Game::buyXp(int amount) {
     emit stateUpdated(); // 通知 UI 更新状态变化
 }
 
+namespace {
+// 根据 player level 随机星级：level 越高，高星概率越大
+int randomStarByLevel(int playerLevel) {
+    // 累积阈值 {1星阈值, 2星阈值, 总和100}
+    static const int thresholds[][3] = {
+        {70, 99, 100},  // level 1: 1星70% 2星30% 3星1%
+        {60, 99, 100},  // level 2: 1星60% 2星39% 3星1%
+        {45, 90, 100},  // level 3: 1星45% 2星45% 3星10%
+        {30, 70, 100},  // level 4: 1星30% 2星40% 3星30%
+        {20, 60, 100},  // level 5: 1星20% 2星40% 3星40%
+        {10, 45, 100},  // level 6: 1星10% 2星35% 3星55%
+        { 5, 35, 100},  // level 7: 1星5%  2星30% 3星65%
+    };
+    const int idx = std::clamp(playerLevel - 1, 0, 6);
+    const int r = rand() % 100;
+    if (r < thresholds[idx][0]) return 1;
+    if (r < thresholds[idx][1]) return 2;
+    return 3;
+}
+} // namespace
+
 void Game::populateStore() {
     UnitData* data = UnitData::instance();
     QStringList keys = data->allKeys();
@@ -796,7 +816,7 @@ void Game::populateStore() {
 
     for (int i = 0; i < Store::STORE_SIZE; ++i) {
         QString key = keys[rand() % keys.size()];
-        int star = (rand() % 3) + 1;  // 1~3 星，后续根据 m_store.level() 调整概率
+        int star = randomStarByLevel(m_player.level());
         auto u = data->createUnit(key, Owner::PlayerCtrl, star);
         if (u) {
             m_store.addUnit(std::move(u), i);
@@ -1041,14 +1061,10 @@ void Game::populateEquipBarWithTestData()
 {
     if (!m_equipBar) return;
     auto& reg = *EquipmentRegistry::instance();
-    m_equipBar->addEquipment(reg.createEquipment("bf_sword"));
-    m_equipBar->addEquipment(reg.createEquipment("giant_belt"));
-    m_equipBar->addEquipment(reg.createEquipment("tear"));
-    m_equipBar->addEquipment(reg.createEquipment("recurve_bow"));
-    m_equipBar->addEquipment(reg.createEquipment("bf_sword"));
-    m_equipBar->addEquipment(reg.createEquipment("giant_belt"));
-    m_equipBar->addEquipment(reg.createEquipment("tear"));
-    m_equipBar->addEquipment(reg.createEquipment("recurve_bow"));
+    const auto keys = reg.allKeys();
+    if (keys.isEmpty()) return;
+    const QString key = keys[rand() % keys.size()];
+    m_equipBar->addEquipment(reg.createEquipment(key));
 }
 
 UnitItem* Game::findUnitItemAtScenePos(const QPointF& scenePos) const

@@ -112,7 +112,7 @@ void Unit::resetMoveCooldown()
 int Unit::effectiveMoveCooldown() const
 {
     // 基础冷却 / (1 + 装备移速加成)，至少为 1
-    int raw = static_cast<int>(m_moveCooldown / (1.0f + m_equipMoveSpeedMod));
+    int raw = static_cast<int>(m_moveCooldown / (1.0f + m_equipMoveSpeedMod + m_bonusMoveSpeed));
     return std::max(1, raw);
 }
 
@@ -134,6 +134,7 @@ void Unit::applySynergyBonuses(const SynergyBonus& bonus) {
     m_bonusMaxHp = bonus.bonusMaxHp;
     m_bonusMaxMana = bonus.bonusMaxMana;
     m_bonusSpeed = bonus.bonusSpeed;
+    m_bonusMoveSpeed = bonus.bonusMoveSpeed;
     
     if (hpDelta != 0) {
         m_hp = std::clamp(m_hp + hpDelta, 0, maxHp());
@@ -146,6 +147,7 @@ void Unit::clearSynergyBonuses() {
     m_bonusMaxHp = 0;
     m_bonusMaxMana = 0;
     m_bonusSpeed = 0;
+    m_bonusMoveSpeed = 0.0f;
     m_hp = std::clamp(m_hp, 0, maxHp());
     m_mana = std::clamp(m_mana, 0, maxMana());
 }

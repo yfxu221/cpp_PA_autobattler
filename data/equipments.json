@@ -12,7 +12,7 @@
         "key": "giant_belt",
         "name": "巨人腰带",
         "bonusAtk": 0,
-        "bonusMaxHp": 50,
+        "bonusMaxHp": 70,
         "bonusMaxMana": 0,
         "bonusSpeed": 0,
         "sprite": "assets/equipments/giant_belt.png"
@@ -22,7 +22,7 @@
         "name": "女神之泪",
         "bonusAtk": 0,
         "bonusMaxHp": 0,
-        "bonusMaxMana": -15,
+        "bonusMaxMana": -5,
         "bonusSpeed": 0,
         "sprite": "assets/equipments/tear.png"
     },
@@ -40,7 +40,7 @@
         "key": "chain_vest",
         "name": "锁子甲",
         "bonusAtk": 5,
-        "bonusMaxHp": 70,
+        "bonusMaxHp": 50,
         "bonusMaxMana": 0,
         "bonusSpeed": 0,
         "sprite": "assets/equipments/chain_vest.png"

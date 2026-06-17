@@ -148,6 +148,7 @@ private:
     int m_bonusMaxHp = 0; // 来自羁绊的最大生命值加成
     int m_bonusMaxMana = 0; // 来自羁绊的最大法力值加成
     int m_bonusSpeed = 0; // 来自羁绊的速度加成
+    float m_bonusMoveSpeed = 0.0f; // 来自羁绊的移速百分比加成
 
     // 装备系统
     int m_maxEquipSlots = 1; // 每个单位最多装备数量（1星=1，≥2星=2）

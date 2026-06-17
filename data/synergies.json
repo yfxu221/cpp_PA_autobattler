@@ -3,7 +3,7 @@
     "trait": "神",
     "thresholds": [
       { "count": 2, "bonusAtk": 10},
-      { "count": 4, "bonusAtk": 15, "bonusMaxHp": 10, "bonusSpeed": 5 }
+      { "count": 4, "bonusAtk": 15, "bonusMaxHp": 10, "bonusMoveSpeed": 0.2 }
     ]
   },
   {
@@ -24,7 +24,7 @@
     "trait": "dot女子",
     "thresholds": [
       { "count": 1, "dotIntervalReduction": 0, "bonusMaxMana": -5 },
-      { "count": 2, "dotIntervalReduction": 1, "bonusMaxMana": -5, "bonusAtk": 5 }
+      { "count": 2, "dotIntervalReduction": 1, "bonusMaxMana": -5, "bonusMoveSpeed": 0.2 }
     ]
   }
 ]
