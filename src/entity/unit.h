@@ -86,7 +86,7 @@ public:
     void addSkill(std::shared_ptr<Skill> skill); // 添加技能
     const std::shared_ptr<Skill>& skill() const {return m_skill;} // 获取单位的技能
     bool hasSkill() const { return m_skill != nullptr; } // 检查单位是否拥有技能
-    bool canUseSkill() const {return hasSkill() && m_mana >= maxMana();} // 检查单位是否可以使用技能（拥有技能且法力值足够）
+    bool canUseSkill() const {return hasSkill() && m_mana >= maxMana() && isCooldownReady();} // 检查单位是否可以使用技能（拥有技能、法力值足够、且攻击冷却就绪）
 
     // Buff / 状态效果系统
     void addBuff(const BuffInstance& buff); // 添加 buff（内部处理叠加规则）

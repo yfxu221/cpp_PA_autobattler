@@ -66,7 +66,7 @@ public:
     ~Game();
 
     void initialize();
-    void reset();
+    void restart();
 
     QGraphicsScene* scene() const { return m_scene; }
 

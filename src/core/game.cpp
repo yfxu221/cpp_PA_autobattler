@@ -52,34 +52,78 @@ void Game::initialize()
     if (!SynergyRegistry::instance()->load("")) {
         qWarning() << "Game: 加载羁绊数据失败";
     }
-    createStarterUnitsIfNeeded();
-    buildScene();
-    buildStoreScene();
-    buildEquipBar();
-    populateEquipBarWithTestData();
-    reset();
+    restart();
 }
 
-void Game::reset()
+void Game::restart()
 {
-    m_phase = GamePhase::Preparation;
-    emit phaseChanged(GamePhase::Preparation);
-    m_board.clear();
+    // 停止战斗系统（如果正在运行）
+    if (m_battleSystem && m_battleSystem->isRunning()) {
+        m_battleSystem->stop();
+    }
 
-    // 玩家单位 → 备战席; 敌方单位 → 其 plan.position
+    // 销毁装备栏（必须在 m_scene->clear() 之前，否则 EquipSlotItem 已被场景删除导致 double free）
+    delete m_equipBar;
+    m_equipBar = nullptr;
+
+    // 清空场景中所有 GUI 项（GridItem / UnitItem / StoreItem / SellZone 等）
+    m_scene->clear();
+    m_sellZone = nullptr;
+    m_gridItems.clear();
+    m_unitItems.clear();
+    m_unitItemById.clear();
+    m_equipDragGhost = nullptr;
+
+    // 清空所有数据容器
+    m_units.clear();
+    m_unitsSnapshot.clear();
+    m_battleUnits.clear();
+    m_board.clear();
+    m_store.refresh();
+    m_pendingOverflowEquipments.clear();
+
+    // 重置拖拽状态
+    m_dragActive = false;
+    m_activeUnitId = -1;
+    m_sourceGrid = QPoint(-1, -1);
+    m_dragStartPlace = DragStartPlace::None;
+    m_equipDragActive = false;
+    m_activeEquipSlotIndex = -1;
+
+    // 重置玩家和敌方到初始状态
+    m_player = Player();
+    m_enemy = Player();
+
+    // 重置游戏状态变量
+    m_battleIndex = 0;
+    m_settlementInfo = SettlementInfo{};
+
+    // 切换到准备阶段
+    m_phase = GamePhase::Preparation;
+    emit phaseChanged(m_phase);
+
+    // 生成初始单位（玩家随机 2 个 + 敌方首轮）
+    createStarterUnitsIfNeeded();
+
+    // 将玩家单位放到备战席（敌方单位已在 generateEnemyUnits() 中通过 m_board.addUnit() 放置）
     int benchCol = 0;
     for (const auto& uptr : m_units) {
         if (uptr->owner() == Owner::PlayerCtrl) {
-            const QPoint benchPos(benchCol, m_board_rows); // 备战席第一行
+            const QPoint benchPos(benchCol, m_board_rows);
             if (m_board.isValidPosition(benchPos)) {
                 m_board.addUnit(uptr.get(), benchPos);
                 ++benchCol;
             }
-        } else {
-            m_board.addUnit(uptr.get(), uptr->position());
         }
     }
 
+    // 重建 GUI（棋盘、商店、装备栏）
+    buildScene();
+    buildStoreScene();
+    buildEquipBar();
+    populateEquipBarWithTestData();
+
+    // 重新计算羁绊并刷新显示
     recalculateSynergies();
     syncFromBoard();
 }

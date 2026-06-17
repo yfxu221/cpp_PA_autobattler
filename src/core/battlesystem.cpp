@@ -285,6 +285,7 @@ void BattleSystem::makeSkill(Unit* caster, const QVector<Unit*>& allUnits) {
     }
 
     caster->setMana(0); // 使用技能后法力值归零
+    caster->resetCooldown(); // 技能视作替换攻击动作，同样进入冷却
 }
 
 

@@ -20,7 +20,7 @@ GameWindow::GameWindow(QWidget* parent)
     , m_mainLayout(new QHBoxLayout())
     , m_view(new QGraphicsView(this))
     , m_game(new Game(this))
-    , m_resetButton(new QPushButton("Reset", this))
+    , m_restartButton(new QPushButton("restart", this))
     , m_battleButton(new QPushButton("开始战斗", this))
     , m_buyXpButton(new QPushButton("购买2经验", this))
     , m_saveButton(new QPushButton("存档", this))
@@ -33,10 +33,10 @@ GameWindow::GameWindow(QWidget* parent)
 GameWindow::~GameWindow() = default;
 
 //  按钮回调
-void GameWindow::onResetButtonClicked() // 重置按钮点击事件处理函数，调用游戏的reset方法重置游戏状态
+void GameWindow::onRestartButtonClicked() // 重新开始按钮，调用restart从零重新开始游戏
 {
     if (m_game) {
-        m_game->reset();
+        m_game->restart();
     }
 }
 
@@ -91,7 +91,7 @@ void GameWindow::onSettlementReady(const SettlementInfo& info) {
     dialog.exec();
 
     if (info.isGameOver) {
-        m_game->reset();
+        m_game->restart();
         return;
     }
 
@@ -222,7 +222,7 @@ void GameWindow::onPhaseChanged(GamePhase phase) {
     case GamePhase::Preparation:
         m_battleButton->setText("开始战斗");
         m_battleButton->setEnabled(true);
-        m_resetButton->setEnabled(true);
+        m_restartButton->setEnabled(true);
         m_saveButton->setEnabled(true);
         m_loadButton->setEnabled(true);
         if (m_game->player()->xp() < m_game->player()->maxXp() && m_game->player()->gold() >= 2) {
@@ -234,7 +234,7 @@ void GameWindow::onPhaseChanged(GamePhase phase) {
     case GamePhase::Battle:
         m_battleButton->setText("战斗中...");
         m_battleButton->setEnabled(false);
-        m_resetButton->setEnabled(false);
+        m_restartButton->setEnabled(false);
         m_buyXpButton->setEnabled(false);
         m_saveButton->setEnabled(false);
         m_loadButton->setEnabled(false);
@@ -242,7 +242,7 @@ void GameWindow::onPhaseChanged(GamePhase phase) {
     case GamePhase::Settlement:
         m_battleButton->setText("结算中...");
         m_battleButton->setEnabled(false);
-        m_resetButton->setEnabled(false);
+        m_restartButton->setEnabled(false);
         m_buyXpButton->setEnabled(false);
         m_saveButton->setEnabled(false);
         m_loadButton->setEnabled(false);
@@ -419,14 +419,14 @@ void GameWindow::setupUI()
     btnLayout->addWidget(m_battleButton);
     btnLayout->addWidget(m_saveButton);
     btnLayout->addWidget(m_loadButton);
-    btnLayout->addWidget(m_resetButton);
+    btnLayout->addWidget(m_restartButton);
     sideLayout->addLayout(btnLayout);
 
     m_mainLayout->addWidget(m_sidePanel);
 
     // 信号连接
-    connect(m_resetButton, &QPushButton::clicked,
-            this, &GameWindow::onResetButtonClicked); // 连接重置按钮的点击信号到槽函数
+    connect(m_restartButton, &QPushButton::clicked,
+            this, &GameWindow::onRestartButtonClicked); // 连接重新开始按钮的点击信号到槽函数
 
     connect(m_buyXpButton, &QPushButton::clicked,
             this, &GameWindow::onBuyXpButtonClicked); // 连接购买经验按钮的点击信号到槽函数

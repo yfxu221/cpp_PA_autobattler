@@ -19,7 +19,7 @@ public:
     ~GameWindow();
 
 private slots:
-    void onResetButtonClicked();
+    void onRestartButtonClicked();
     void onBattleButtonClicked();
     void onPhaseChanged(GamePhase phase);  // 根据阶段更新按钮状态
     void refreshInfoBar(); // 刷新侧边栏显示双方状态等信息
@@ -64,7 +64,7 @@ private:
     QLabel* m_playerTraitLabel; // 玩家羁绊标签
 
     // 按钮
-    QPushButton* m_resetButton; // 重置按钮
+    QPushButton* m_restartButton; // 重新开始按钮
     QPushButton* m_battleButton;   // "开始战斗"按钮
     QPushButton* m_buyXpButton; // 购买经验按钮
     QPushButton* m_saveButton; // 存档按钮

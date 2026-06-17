@@ -10,7 +10,7 @@
 
 static constexpr int kSaveVersion = 1;
 
-// JSON key 常量
+// JSON key 常量（防止字符串拼写错误）
 namespace JsonKey {
     constexpr auto kVersion      = "version";
     constexpr auto kTimestamp    = "timestamp";
@@ -51,11 +51,11 @@ namespace JsonKey {
 static QJsonObject playerToJson(int gold, int hp, int maxHp, int level, int xp, int xpToNext)
 {
     QJsonObject obj;
-    obj[JsonKey::kGold]    = gold;
-    obj[JsonKey::kHp]      = hp;
-    obj[JsonKey::kMaxHp]   = maxHp;
-    obj[JsonKey::kLevel]   = level;
-    obj[JsonKey::kXp]      = xp;
+    obj[JsonKey::kGold] = gold;
+    obj[JsonKey::kHp] = hp;
+    obj[JsonKey::kMaxHp] = maxHp;
+    obj[JsonKey::kLevel] = level;
+    obj[JsonKey::kXp] = xp;
     obj[JsonKey::kXpToNext] = xpToNext;
     return obj;
 }
@@ -63,11 +63,11 @@ static QJsonObject playerToJson(int gold, int hp, int maxHp, int level, int xp, 
 static bool playerFromJson(const QJsonObject& obj,
                            int& gold, int& hp, int& maxHp, int& level, int& xp, int& xpToNext)
 {
-    gold    = obj[JsonKey::kGold].toInt(20);
-    hp      = obj[JsonKey::kHp].toInt(100);
-    maxHp   = obj[JsonKey::kMaxHp].toInt(100);
-    level   = obj[JsonKey::kLevel].toInt(1);
-    xp      = obj[JsonKey::kXp].toInt(0);
+    gold = obj[JsonKey::kGold].toInt(20);
+    hp = obj[JsonKey::kHp].toInt(100);
+    maxHp = obj[JsonKey::kMaxHp].toInt(100);
+    level = obj[JsonKey::kLevel].toInt(1);
+    xp = obj[JsonKey::kXp].toInt(0);
     xpToNext = obj[JsonKey::kXpToNext].toInt(4);
     return true;
 }
@@ -75,35 +75,35 @@ static bool playerFromJson(const QJsonObject& obj,
 static QJsonObject unitEntryToJson(const SaveData::UnitEntry& u)
 {
     QJsonObject obj;
-    obj[JsonKey::kKey]       = u.key;
-    obj[JsonKey::kName]      = u.name;
+    obj[JsonKey::kKey] = u.key;
+    obj[JsonKey::kName] = u.name;
     obj[JsonKey::kStarLevel] = u.starLevel;
-    obj[JsonKey::kCol]       = u.col;
-    obj[JsonKey::kRow]       = u.row;
-    obj[JsonKey::kHpUnit]    = u.hp;
-    obj[JsonKey::kMana]      = u.mana;
-    obj[JsonKey::kOwner]     = u.owner;
+    obj[JsonKey::kCol] = u.col;
+    obj[JsonKey::kRow] = u.row;
+    obj[JsonKey::kHpUnit] = u.hp;
+    obj[JsonKey::kMana] = u.mana;
+    obj[JsonKey::kOwner] = u.owner;
 
     QJsonArray eqArr;
     for (const QString& ek : u.equipmentKeys) {
         eqArr.append(ek);
     }
     obj[JsonKey::kEquipmentKeys] = eqArr;
-    obj[JsonKey::kSkillKey]      = u.skillKey;
+    obj[JsonKey::kSkillKey] = u.skillKey;
     return obj;
 }
 
 static SaveData::UnitEntry unitEntryFromJson(const QJsonObject& obj)
 {
     SaveData::UnitEntry u;
-    u.key       = obj[JsonKey::kKey].toString();
-    u.name      = obj[JsonKey::kName].toString();
+    u.key = obj[JsonKey::kKey].toString();
+    u.name = obj[JsonKey::kName].toString();
     u.starLevel = obj[JsonKey::kStarLevel].toInt(1);
-    u.col       = obj[JsonKey::kCol].toInt(0);
-    u.row       = obj[JsonKey::kRow].toInt(0);
-    u.hp        = obj[JsonKey::kHpUnit].toInt(100);
-    u.mana      = obj[JsonKey::kMana].toInt(0);
-    u.owner     = obj[JsonKey::kOwner].toString("player");
+    u.col = obj[JsonKey::kCol].toInt(0);
+    u.row = obj[JsonKey::kRow].toInt(0);
+    u.hp = obj[JsonKey::kHpUnit].toInt(100);
+    u.mana = obj[JsonKey::kMana].toInt(0);
+    u.owner = obj[JsonKey::kOwner].toString("player");
 
     const QJsonArray eqArr = obj[JsonKey::kEquipmentKeys].toArray();
     for (const auto& v : eqArr) {
@@ -116,18 +116,18 @@ static SaveData::UnitEntry unitEntryFromJson(const QJsonObject& obj)
 static QJsonObject storeEntryToJson(const SaveData::StoreEntry& s)
 {
     QJsonObject obj;
-    obj[JsonKey::kKey]       = s.key;
+    obj[JsonKey::kKey] = s.key;
     obj[JsonKey::kStarLevel] = s.starLevel;
-    obj[JsonKey::kFilled]    = s.filled;
+    obj[JsonKey::kFilled] = s.filled;
     return obj;
 }
 
 static SaveData::StoreEntry storeEntryFromJson(const QJsonObject& obj)
 {
     SaveData::StoreEntry s;
-    s.key       = obj[JsonKey::kKey].toString();
+    s.key = obj[JsonKey::kKey].toString();
     s.starLevel = obj[JsonKey::kStarLevel].toInt(1);
-    s.filled    = obj[JsonKey::kFilled].toBool(false);
+    s.filled = obj[JsonKey::kFilled].toBool(false);
     return s;
 }
 // 从 SaveData 结构序列化到 JSON对象
