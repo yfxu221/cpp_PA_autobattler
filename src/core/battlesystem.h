@@ -41,7 +41,9 @@ public:
     void start(BoardANDBench& board,
                QList<Unit*>& units,
                Player* player,
-               Player* enemy); // 从Game中初始化数据
+               Player* enemy,
+               int playerDotIntervalReduction = 0,
+               int enemyDotIntervalReduction = 0); // 从Game中初始化数据
     void stop();
     bool isRunning() const { return m_timer != nullptr && m_timer->isActive(); }
 
@@ -79,6 +81,10 @@ private:
     QList<Unit*>* m_units = nullptr;
     Player* m_player = nullptr;
     Player* m_enemy = nullptr;
+
+    // 团队级羁绊效果：dot 间隔缩减
+    int m_playerDotIntervalReduction = 0;
+    int m_enemyDotIntervalReduction = 0;
 
     QTimer* m_timer = nullptr;
     int m_tickCount = 0;

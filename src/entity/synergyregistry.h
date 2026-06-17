@@ -10,12 +10,14 @@ struct SynergyBonus {
     int bonusMaxHp = 0;
     int bonusMaxMana = 0;
     int bonusSpeed = 0;
+    int dotIntervalReduction = 0;
 
     SynergyBonus& operator+=(const SynergyBonus& other) {
         bonusAtk += other.bonusAtk;
         bonusMaxHp += other.bonusMaxHp;
         bonusMaxMana += other.bonusMaxMana;
         bonusSpeed += other.bonusSpeed;
+        dotIntervalReduction += other.dotIntervalReduction;
         return *this;
     }
 };

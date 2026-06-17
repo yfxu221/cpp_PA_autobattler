@@ -9,8 +9,8 @@
 
 enum class UnitRole {
     Frontline, // 前排：坦克、战士
-    Midline, // 中排：刺客
-    Backline // 后排：射手、辅助
+    Midline, // 中排：刺客、辅助
+    Backline // 后排：射手、法师
 };
 
 

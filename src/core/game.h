@@ -93,6 +93,7 @@ public:
     int countFieldUnits(Owner owner) const; // 计算当前棋盘上单位的数量
     QHash<QString, int> getTraitCounts(Owner owner) const; // 获取指定所有者的羁绊计数
     void recalculateSynergies(); // 重新计算所有场上单位的羁绊加成
+    int dotIntervalReduction(Owner owner) const; // 获取指定所有者的 dot 间隔缩减（来自羁绊）
     int playerMaxFieldUnits() const { return m_player.maxFieldUnits(); } // 获取玩家在棋盘上可以拥有的最大单位数量
     void buyXp(int amount); // 玩家购买经验，增加经验值
     void refreshStore(); // 刷新商店，生成新的单位列表
@@ -160,6 +161,9 @@ private:
     QList<Unit*> m_battleUnits; // 当前参战单位（仅棋盘上的单位），传给BattleSystem
 
     int m_battleIndex = 0; // 战斗回合计数器，记录当前是第几轮战斗
+
+    // 团队级羁绊效果（按 owner 索引，0=PlayerCtrl, 1=EnemyCtrl）
+    int m_teamDotIntervalReduction[2] = {0, 0};
 
     SettlementInfo m_settlementInfo; // 结算信息，记录战斗结果和状态变化，供结算界面显示
 

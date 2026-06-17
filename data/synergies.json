@@ -16,8 +16,15 @@
   {
     "trait": "区",
     "thresholds": [
-      { "count": 1, "bonusMaxMana": -10 },
-      { "count": 2, "bonusMaxMana": -15, "bonusAtk": 5 }
+      { "count": 1, "bonusMaxMana": -5 },
+      { "count": 2, "bonusMaxMana": -10, "bonusAtk": 5 }
+    ]
+  },
+  {
+    "trait": "dot女子",
+    "thresholds": [
+      { "count": 1, "dotIntervalReduction": 0, "bonusMaxMana": -5 },
+      { "count": 2, "dotIntervalReduction": 1, "bonusMaxMana": -5, "bonusAtk": 5 }
     ]
   }
 ]

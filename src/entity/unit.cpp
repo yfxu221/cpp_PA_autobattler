@@ -5,7 +5,8 @@ QColor traitColor(const QString& trait) {
     static QHash<QString, QColor> colorMap = {
         {"人", QColor(80, 200, 80)},
         {"神", QColor(255, 180, 40)},
-        {"区", QColor(180, 100, 255)}
+        {"区", QColor(180, 100, 255)},
+        {"dot女子", QColor(255, 100, 100)}
     };
     return colorMap.value(trait, QColor(128, 128, 128)); // 默认灰色
 }
@@ -43,7 +44,7 @@ int Unit::atk() const
     const int base = static_cast<int>(m_baseAtk * starMultiplier(m_starLevel));
     const int bonus = m_bonusAtk + m_equipBonusAtk;
     const float buffMod = statModSum(BuffStat::ATK);
-    return static_cast<int>((base + bonus) * (1.0f + buffMod));
+    return static_cast<int>(base + bonus + buffMod);
 }
 
 int Unit::maxHp() const
@@ -56,7 +57,7 @@ int Unit::maxMana() const
 {
     const int base = m_maxMana + m_bonusMaxMana + m_equipBonusMaxMana;
     const float buffMod = statModSum(BuffStat::MaxMana);
-    return std::max(5, static_cast<int>(base * (1.0f + buffMod)));
+    return std::max(5, static_cast<int>(base + buffMod));
 }
 
 

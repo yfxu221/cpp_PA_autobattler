@@ -98,6 +98,7 @@ bool SynergyRegistry::load(const QString& jsonPath) {
             thresh.bonus.bonusMaxHp = threshObj["bonusMaxHp"].toInt();
             thresh.bonus.bonusMaxMana = threshObj["bonusMaxMana"].toInt();
             thresh.bonus.bonusSpeed = threshObj["bonusSpeed"].toInt();
+            thresh.bonus.dotIntervalReduction = threshObj["dotIntervalReduction"].toInt();
 
             ruleList.append(thresh);
         }

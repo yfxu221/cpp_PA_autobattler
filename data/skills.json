@@ -62,15 +62,52 @@
         "params": {
             "targetType": "Enemy",
             "selectType": "Nearest",
+            "castRange": 3
+        },
+        "buffs": [
+            {
+                "buffKey": "dot",
+                "duration": 18,
+                "damageInterval": 3,
+                "valueType": "fixed",
+                "value": 4
+            }
+        ]
+    },
+    {
+        "key": "dotHeal",
+        "strategy": "BuffSingleTargeted",
+        "name": "dot奶",
+        "params": {
+            "targetType": "Ally",
+            "selectType": "Nearest",
             "castRange": 1
         },
         "buffs": [
             {
                 "buffKey": "dot",
                 "duration": 18,
-                "damageInterval": 6,
+                "damageInterval": -3,
                 "valueType": "fixed",
-                "value": 5
+                "value": 3
+            }
+        ]
+    },
+    {
+        "key": "selfEnhance",
+        "strategy": "BuffSingleTargeted",
+        "name": "强化",
+        "params": {
+            "targetType": "Self",
+            "selectType": "Nearest",
+            "castRange": 1
+        },
+        "buffs": [
+            {
+                "buffKey": "atk_affect",
+                "duration": 32,
+                "valueType": "AtkRatio",
+                "ratio": 0.5 
             }
         ]
     }

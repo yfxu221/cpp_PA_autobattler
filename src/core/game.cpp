@@ -555,7 +555,8 @@ void Game::onBattleStart() {
     }
 
     // 启动战斗
-    m_battleSystem->start(m_board, m_battleUnits, &m_player, &m_enemy);
+    m_battleSystem->start(m_board, m_battleUnits, &m_player, &m_enemy,
+                          m_teamDotIntervalReduction[0], m_teamDotIntervalReduction[1]);
 }
 
 void Game::onBattleFinished(BattleResult result) {
@@ -730,6 +731,10 @@ QHash<QString, int> Game::getTraitCounts(Owner owner) const {
     return traitCounts;
 }
 
+int Game::dotIntervalReduction(Owner owner) const {
+    return m_teamDotIntervalReduction[owner == Owner::PlayerCtrl ? 0 : 1];
+}
+
 void Game::recalculateSynergies() {
 
     for (auto& uptr : m_units) {
@@ -749,6 +754,13 @@ void Game::recalculateSynergies() {
         for (auto it = traitCounts.begin(); it != traitCounts.end(); ++it) {
             traitBonuses[it.key()] = SynergyRegistry::instance()->getBonus(it.key(), it.value());
         }
+
+        // 聚合团队级 dot 间隔缩减（取所有 trait 中的最大值）
+        int teamDotReduction = 0;
+        for (auto it = traitBonuses.begin(); it != traitBonuses.end(); ++it) {
+            teamDotReduction = std::max(teamDotReduction, it.value().dotIntervalReduction);
+        }
+        m_teamDotIntervalReduction[ownerIdx] = teamDotReduction;
 
         // 应用加成：遍历该所有者的单位，根据它们的 trait 应用对应的加成
         for (int row = 0; row < m_board_rows; ++row) {

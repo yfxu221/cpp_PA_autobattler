@@ -16,8 +16,8 @@
 namespace {
     UnitRole roleFromType(const QString& type) {
     if (type == "坦克" || type == "战士") return UnitRole::Frontline;
-    if (type == "刺客") return UnitRole::Midline;
-    if (type == "射手" || type == "辅助") return UnitRole::Backline;
+    if (type == "刺客" || type == "辅助") return UnitRole::Midline;
+    if (type == "射手" || type == "法师") return UnitRole::Backline;
     qWarning() << "Unknown unit type:" << type << ", defaulting to Frontline";
     return UnitRole::Frontline; // 安全默认
 }

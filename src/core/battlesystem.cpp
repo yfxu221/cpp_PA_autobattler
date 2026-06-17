@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <QHash>
 #include "entity/skill.h"
+#include "entity/buffregistry.h"
 
 // ============================================================
 // 匿名命名空间 — 辅助函数，仅在当前翻译单元可见
@@ -56,12 +57,16 @@ BattleSystem::BattleSystem(QObject *parent)
 void BattleSystem::start(BoardANDBench& board,
                          QList<Unit*>& units,
                          Player* player,
-                         Player* enemy)
+                         Player* enemy,
+                         int playerDotIntervalReduction,
+                         int enemyDotIntervalReduction)
 {
     m_board = &board;
     m_units = &units;
     m_player = player;
     m_enemy = enemy;
+    m_playerDotIntervalReduction = playerDotIntervalReduction;
+    m_enemyDotIntervalReduction = enemyDotIntervalReduction;
 
     if (!m_timer) {
         m_timer = new QTimer(this);
@@ -289,6 +294,17 @@ void BattleSystem::makeSkill(Unit* caster, const QVector<Unit*>& allUnits) {
         instance.totalTicks = ba.duration;
         instance.magnitude = ba.magnitude;
         instance.damageInterval = ba.damageInterval;
+
+        // 羁绊效果：dot 间隔缩减
+        const BuffDef* buffDef = BuffRegistry::instance()->get(ba.buffKey);
+        if (buffDef && buffDef->category == BuffCategory::Dot) {
+            const int reduction = (caster->owner() == Owner::PlayerCtrl)
+                ? m_playerDotIntervalReduction : m_enemyDotIntervalReduction;
+            if (reduction > 0) {
+                instance.damageInterval = std::max(1, instance.damageInterval - reduction);
+            }
+        }
+
         ba.target->addBuff(instance);
     }
 
