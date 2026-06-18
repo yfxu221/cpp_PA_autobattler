@@ -326,7 +326,7 @@ void BattleSystem::resolveDeaths() {
     for (Unit* unit : *m_units) {
         if (unit->isAlive()) {continue;}
         unit->setState(UnitState::Dead);
-        // 可能的死亡处理
+        m_board->removeUnit(unit); // 将死亡单位从棋盘格子上移除，释放其占据的位置
     }
 }
 
