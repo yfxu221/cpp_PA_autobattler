@@ -53,6 +53,17 @@ struct SettlementInfo {
     int enemyGoldAfter;
     bool isGameOver; // 是否有人 HP ≤ 0
     QStringList droppedEquipmentKeys; // 击败敌人掉落的装备 key 列表
+
+    // 高级经济系统：利息和连胜/连败
+    int playerInterest = 0; // 玩家利息收益
+    int playerStreakBonus = 0; // 玩家连胜/连败额外奖励
+    int playerWinStreak = 0; // 结算时玩家的连胜数（显示用）
+    int playerLoseStreak = 0; // 结算时玩家的连败数（显示用）
+
+    int enemyInterest = 0; // 敌方利息收益
+    int enemyStreakBonus = 0; // 敌方连胜/连败额外奖励
+    int enemyWinStreak = 0; // 结算时敌方的连胜数（显示用）
+    int enemyLoseStreak = 0; // 结算时敌方的连败数（显示用）
 };
 
 

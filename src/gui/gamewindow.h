@@ -60,6 +60,7 @@ private:
     QLabel* m_playerXpLabel; // 玩家经验值标签
     QLabel* m_playerHpLabel; // 玩家HP标签
     QLabel* m_playerGoldLabel; // 玩家金币标签
+    QLabel* m_playerStreakLabel; // 玩家连胜/连败标签
     QLabel* m_playerFieldLabel; // 玩家场上单位标签
     QLabel* m_playerTraitLabel; // 玩家羁绊标签
 

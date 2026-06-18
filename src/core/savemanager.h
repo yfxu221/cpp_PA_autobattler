@@ -28,6 +28,8 @@ struct SaveData {
     int playerLevel = 1;
     int playerXp = 0;
     int playerXpToNext = 4;
+    int playerWinStreak = 0;
+    int playerLoseStreak = 0;
 
     // Enemy
     int enemyGold = 10;
@@ -36,6 +38,8 @@ struct SaveData {
     int enemyLevel = 1;
     int enemyXp = 0;
     int enemyXpToNext = 4;
+    int enemyWinStreak = 0;
+    int enemyLoseStreak = 0;
 
     // Game
     int battleIndex = 1;

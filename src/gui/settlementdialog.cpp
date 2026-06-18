@@ -10,7 +10,7 @@ SettlementDialog::SettlementDialog(const SettlementInfo& info, QWidget* parent)
     : QDialog(parent)
 {
     setWindowTitle(QStringLiteral("战斗结算"));
-    setFixedSize(360, 340);
+    setFixedSize(360, 440);
     setStyleSheet(R"(
         QDialog {
             background-color: #2b2b2b;
@@ -72,7 +72,9 @@ SettlementDialog::SettlementDialog(const SettlementInfo& info, QWidget* parent)
     auto* playerGrid = new QGridLayout(playerGroup);
     playerGrid->setSpacing(4);
     playerGrid->addWidget(new QLabel(hpChangeLabel("HP", info.playerHpBefore, info.playerHpAfter), this), 0, 0);
-    playerGrid->addWidget(new QLabel(goldChangeLabel("金币", info.playerGoldBefore, info.playerGoldAfter), this), 1, 0);
+    playerGrid->addWidget(new QLabel(goldChangeLabel("金币", info.playerGoldBefore, info.playerGoldAfter,
+                                                     info.playerInterest, info.playerStreakBonus), this), 1, 0);
+    playerGrid->addWidget(new QLabel(streakStatusLabel(info.playerWinStreak, info.playerLoseStreak), this), 2, 0);
     mainLayout->addWidget(playerGroup);
 
     // ---- 敌方信息 ----
@@ -80,7 +82,9 @@ SettlementDialog::SettlementDialog(const SettlementInfo& info, QWidget* parent)
     auto* enemyGrid = new QGridLayout(enemyGroup);
     enemyGrid->setSpacing(4);
     enemyGrid->addWidget(new QLabel(hpChangeLabel("HP", info.enemyHpBefore, info.enemyHpAfter), this), 0, 0);
-    enemyGrid->addWidget(new QLabel(goldChangeLabel("金币", info.enemyGoldBefore, info.enemyGoldAfter), this), 1, 0);
+    enemyGrid->addWidget(new QLabel(goldChangeLabel("金币", info.enemyGoldBefore, info.enemyGoldAfter,
+                                                    info.enemyInterest, info.enemyStreakBonus), this), 1, 0);
+    enemyGrid->addWidget(new QLabel(streakStatusLabel(info.enemyWinStreak, info.enemyLoseStreak), this), 2, 0);
     mainLayout->addWidget(enemyGroup);
 
     // ---- 按钮 ----
@@ -121,17 +125,45 @@ QString SettlementDialog::hpChangeLabel(const QString& side, int before, int aft
         .arg(deltaStr);
 }
 
-QString SettlementDialog::goldChangeLabel(const QString& side, int before, int after) const
+QString SettlementDialog::goldChangeLabel(const QString& side, int before, int after,
+                                         int interest, int streakBonus) const
 {
     int delta = after - before;
     QString deltaStr = delta >= 0
         ? QString("(+%1)").arg(delta)
         : QString("(%1)").arg(delta);
     QString color = delta >= 0 ? "#ffcc66" : "#ff6666";
-    return QString("<span style='color:%3'>%1:  %2  →  %4  %5</span>")
+
+    // 构建金币变动明细
+    QStringList parts;
+    if (interest > 0) {
+        parts.append(QString("利息 +%1").arg(interest));
+    }
+    if (streakBonus > 0) {
+        parts.append(QString("连胜/连败奖励 +%1").arg(streakBonus));
+    }
+    QString breakdown;
+    if (!parts.isEmpty()) {
+        breakdown = QString("<br><span style='font-size:11px; color:#aaaaaa;'>  (%2)</span>")
+                        .arg(parts.join("，"));
+    }
+
+    return QString("<span style='color:%3'>%1:  %2  →  %4  %5</span>%6")
         .arg(side)
         .arg(before)
         .arg(color)
         .arg(after)
-        .arg(deltaStr);
+        .arg(deltaStr)
+        .arg(breakdown);
+}
+
+QString SettlementDialog::streakStatusLabel(int winStreak, int loseStreak) const
+{
+    if (winStreak >= 2) {
+        return QString("<span style='font-size:12px; color:#ff9944;'>🔥 连胜 x%1</span>").arg(winStreak);
+    }
+    if (loseStreak >= 2) {
+        return QString("<span style='font-size:12px; color:#6699cc;'>❄ 连败 x%1</span>").arg(loseStreak);
+    }
+    return QStringLiteral(""); // 无连胜/连败时不显示
 }

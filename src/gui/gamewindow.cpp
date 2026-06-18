@@ -182,7 +182,7 @@ QString GameWindow::traitHtml(const QHash<QString, int>& traits) const
         parts << QString("<span style='color:%1;'>%2×%3</span>")
             .arg(hex).arg(it.key()).arg(it.value());
     }
-    return QStringLiteral("羁绊: ") + parts.join(" · ");
+    return QStringLiteral("羁绊: ") + parts.join("<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
 }
 
 void GameWindow::refreshInfoBar()
@@ -204,6 +204,16 @@ void GameWindow::refreshInfoBar()
         .arg(p->xp()).arg(p->xpToNext()));
     m_playerHpLabel->setText(hpText(p->hp(), p->maxHp()));
     m_playerGoldLabel->setText(QString("金币💰: <span style='color:#ffcc00;'>%1</span>").arg(p->gold()));
+
+    // 连胜/连败状态
+    if (p->winStreak() >= 2) {
+        m_playerStreakLabel->setText(QString("<span style='color:#ff9944;'>🔥 连胜 x%1</span>").arg(p->winStreak()));
+    } else if (p->loseStreak() >= 2) {
+        m_playerStreakLabel->setText(QString("<span style='color:#6699cc;'>❄ 连败 x%1</span>").arg(p->loseStreak()));
+    } else {
+        m_playerStreakLabel->setText("");
+    }
+
     m_playerFieldLabel->setText(QString("场上: %1/%2")
         .arg(m_game->countFieldUnits(PlayerCtrl)).arg(p->maxFieldUnits()));
     m_playerTraitLabel->setText(traitHtml(m_game->getTraitCounts(PlayerCtrl)));
@@ -393,6 +403,7 @@ void GameWindow::setupUI()
     m_playerXpLabel = new QLabel("经验: -/-", this);
     m_playerHpLabel = new QLabel("HP: -/-", this);
     m_playerGoldLabel = new QLabel("金币: -", this);
+    m_playerStreakLabel = new QLabel("", this);
     m_playerFieldLabel = new QLabel("场上: -/-", this);
     m_playerTraitLabel = new QLabel("羁绊: 无", this);
 
@@ -400,11 +411,13 @@ void GameWindow::setupUI()
                          m_playerGoldLabel, m_playerFieldLabel, m_playerTraitLabel}) {
         lbl->setStyleSheet("font-size: 15px; background: transparent;");
     }
+    m_playerStreakLabel->setStyleSheet("font-size: 13px; font-weight: bold; background: transparent;");
 
     playerLayout->addWidget(m_playerLevelLabel);
     playerLayout->addWidget(m_playerXpLabel);
     playerLayout->addWidget(m_playerHpLabel);
     playerLayout->addWidget(m_playerGoldLabel);
+    playerLayout->addWidget(m_playerStreakLabel);
     playerLayout->addWidget(m_playerFieldLabel);
     playerLayout->addWidget(m_playerTraitLabel);
     sideLayout->addWidget(m_playerGroup);

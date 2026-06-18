@@ -52,3 +52,9 @@ int Player::maxFieldUnits() const
     return 2 + (m_level - 1) / 2; // 每2级增加1个单位位，初始为2个
 }
 
+void Player::resetStreaks()
+{
+    m_winStreak = 0;
+    m_loseStreak = 0;
+}
+

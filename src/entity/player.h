@@ -25,6 +25,12 @@ public:
     int xpToNext() const { return m_xpToNext; } // 获取玩家升级所需的经验值
     int maxXp() const {return calculateMaxXpForLevel(m_maxLevel);} // 获取玩家可以达到的最大经验值，等同于达到最高等级所需的经验值
 
+    // 连胜/连败系统
+    int winStreak() const { return m_winStreak; }  // 获取当前连胜数
+    int loseStreak() const { return m_loseStreak; } // 获取当前连败数
+    void setWinStreak(int streak) { m_winStreak = streak; } // 设置连胜数（存档恢复用）
+    void setLoseStreak(int streak) { m_loseStreak = streak; } // 设置连败数（存档恢复用）
+    void resetStreaks(); // 重置连胜/连败（重新开始游戏时调用）
 
 private:
     int m_gold; // 玩家当前的金币数量
@@ -34,6 +40,9 @@ private:
     int m_xp; // 玩家当前的经验值
     int m_xpToNext; // 升级所需的经验值
     int m_maxLevel = 7; // 玩家可以达到的最高等级
+
+    int m_winStreak = 0;  // 当前连胜次数
+    int m_loseStreak = 0; // 当前连败次数
 
     int calculateMaxXpForLevel(int level) const { return 4 + (level - 1) * 2; } // 计算指定等级所需的最大经验值
 

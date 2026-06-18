@@ -561,18 +561,66 @@ void Game::onBattleStart() {
 
 void Game::onBattleFinished(BattleResult result) {
     m_battleSystem->stop();
-    // 记录结算信息，不改变状态
-    m_settlementInfo.result = result; // 记录战斗结果，供结算界面显示
+
+    // ━━━ 连胜/连败更新 ━━━
+    // 根据战斗结果更新双方连胜/连败计数
+    if (result == BattleResult::Draw) {
+        // 平局：双方连胜连败均归零
+        m_player.resetStreaks();
+        m_enemy.resetStreaks();
+    } else if (result == BattleResult::PlayerWin) {
+        m_player.setWinStreak(m_player.winStreak() + 1);
+        m_player.setLoseStreak(0);
+        m_enemy.setLoseStreak(m_enemy.loseStreak() + 1);
+        m_enemy.setWinStreak(0);
+    } else if (result == BattleResult::EnemyWin) {
+        m_enemy.setWinStreak(m_enemy.winStreak() + 1);
+        m_enemy.setLoseStreak(0);
+        m_player.setLoseStreak(m_player.loseStreak() + 1);
+        m_player.setWinStreak(0);
+    }
+
+    // ━━━ 连胜/连败奖励查表 ━━━
+    // streak 2-3 → +1, streak 4-5 → +2, streak 6+ → +3
+    auto streakBonus = [](int streak) -> int {
+        if (streak >= 6) return 3;
+        if (streak >= 4) return 2;
+        if (streak >= 2) return 1;
+        return 0;
+    };
+
+    constexpr int kMaxInterest = 5; // 利息上限
+
+    // ━━━ 计算双方利息和连胜奖励 ━━━
+    int playerInterest = std::min(m_player.gold() / 10, kMaxInterest);
+    int playerStreak = std::max(m_player.winStreak(), m_player.loseStreak());
+    int playerStreakBonus = streakBonus(playerStreak);
+
+    int enemyInterest = std::min(m_enemy.gold() / 10, kMaxInterest);
+    int enemyStreak = std::max(m_enemy.winStreak(), m_enemy.loseStreak());
+    int enemyStreakBonus = streakBonus(enemyStreak);
+
+    // ━━━ 记录结算信息 ━━━
+    m_settlementInfo.result = result;
+    m_settlementInfo.playerInterest = playerInterest;
+    m_settlementInfo.playerStreakBonus = playerStreakBonus;
+    m_settlementInfo.playerWinStreak = m_player.winStreak();
+    m_settlementInfo.playerLoseStreak = m_player.loseStreak();
+    m_settlementInfo.enemyInterest = enemyInterest;
+    m_settlementInfo.enemyStreakBonus = enemyStreakBonus;
+    m_settlementInfo.enemyWinStreak = m_enemy.winStreak();
+    m_settlementInfo.enemyLoseStreak = m_enemy.loseStreak();
+
     if(result == BattleResult::Draw){
         // 平局处理
         m_settlementInfo.playerHpBefore = m_player.hp();
         m_settlementInfo.playerHpAfter = m_player.hp() - 10;
         m_settlementInfo.playerGoldBefore = m_player.gold();
-        m_settlementInfo.playerGoldAfter = m_player.gold() + m_battleIndex * 2;
+        m_settlementInfo.playerGoldAfter = m_player.gold() + playerInterest + playerStreakBonus + m_battleIndex * 2;
         m_settlementInfo.enemyHpBefore = m_enemy.hp();
         m_settlementInfo.enemyHpAfter = m_enemy.hp() - 10;
         m_settlementInfo.enemyGoldBefore = m_enemy.gold();
-        m_settlementInfo.enemyGoldAfter = m_enemy.gold() + m_battleIndex * 2;
+        m_settlementInfo.enemyGoldAfter = m_enemy.gold() + enemyInterest + enemyStreakBonus + m_battleIndex * 2;
         m_settlementInfo.isGameOver = (m_settlementInfo.playerHpAfter <= 0 || m_settlementInfo.enemyHpAfter <= 0);
     }
     else if(result == BattleResult::PlayerWin) {
@@ -580,22 +628,22 @@ void Game::onBattleFinished(BattleResult result) {
         m_settlementInfo.playerHpBefore = m_player.hp();
         m_settlementInfo.playerHpAfter = m_player.hp();
         m_settlementInfo.playerGoldBefore = m_player.gold();
-        m_settlementInfo.playerGoldAfter = m_player.gold() + m_battleIndex * 5;
+        m_settlementInfo.playerGoldAfter = m_player.gold() + playerInterest + playerStreakBonus + m_battleIndex * 5;
         m_settlementInfo.enemyHpBefore = m_enemy.hp();
         m_settlementInfo.enemyHpAfter = m_enemy.hp() - 10 - m_battleIndex * 5;
         m_settlementInfo.enemyGoldBefore = m_enemy.gold();
-        m_settlementInfo.enemyGoldAfter = m_enemy.gold() + m_battleIndex;
+        m_settlementInfo.enemyGoldAfter = m_enemy.gold() + enemyInterest + enemyStreakBonus + m_battleIndex;
         m_settlementInfo.isGameOver = (m_settlementInfo.enemyHpAfter <= 0);
     }
-    else if(result == BattleResult::EnemyWin) { 
+    else if(result == BattleResult::EnemyWin) {
         m_settlementInfo.playerHpBefore = m_player.hp();
         m_settlementInfo.playerHpAfter = m_player.hp() - 10 - m_battleIndex * 5;
         m_settlementInfo.playerGoldBefore = m_player.gold();
-        m_settlementInfo.playerGoldAfter = m_player.gold() + m_battleIndex;
+        m_settlementInfo.playerGoldAfter = m_player.gold() + playerInterest + playerStreakBonus + m_battleIndex;
         m_settlementInfo.enemyHpBefore = m_enemy.hp();
         m_settlementInfo.enemyHpAfter = m_enemy.hp();
         m_settlementInfo.enemyGoldBefore = m_enemy.gold();
-        m_settlementInfo.enemyGoldAfter = m_enemy.gold() + m_battleIndex * 5;
+        m_settlementInfo.enemyGoldAfter = m_enemy.gold() + enemyInterest + enemyStreakBonus + m_battleIndex * 5;
         m_settlementInfo.isGameOver = (m_settlementInfo.playerHpAfter <= 0);
     }
     // 掉落判定，敌方每个死亡单位按星级独立计算，上限 3 件
@@ -627,7 +675,7 @@ void Game::onBattleFinished(BattleResult result) {
         }
     }
     startSettlement(); // 进入结算阶段
-    
+
 }
 
 void Game::onSettlementStart() {
@@ -1239,6 +1287,8 @@ SaveData Game::collectSaveData() const
     data.playerLevel   = m_player.level();
     data.playerXp      = m_player.xp();
     data.playerXpToNext = m_player.xpToNext();
+    data.playerWinStreak  = m_player.winStreak();
+    data.playerLoseStreak = m_player.loseStreak();
 
     // Enemy
     data.enemyGold    = m_enemy.gold();
@@ -1247,6 +1297,8 @@ SaveData Game::collectSaveData() const
     data.enemyLevel   = m_enemy.level();
     data.enemyXp      = m_enemy.xp();
     data.enemyXpToNext = m_enemy.xpToNext();
+    data.enemyWinStreak  = m_enemy.winStreak();
+    data.enemyLoseStreak = m_enemy.loseStreak();
 
     // Game
     data.battleIndex = m_battleIndex;
@@ -1343,6 +1395,8 @@ void Game::applySaveData(const SaveData& data)
     m_player.setLevel(data.playerLevel);
     m_player.setXp(data.playerXp);
     m_player.setXpToNext(data.playerXpToNext);
+    m_player.setWinStreak(data.playerWinStreak);
+    m_player.setLoseStreak(data.playerLoseStreak);
 
     // 恢复 Enemy
     m_enemy.setGold(data.enemyGold);
@@ -1350,6 +1404,8 @@ void Game::applySaveData(const SaveData& data)
     m_enemy.setLevel(data.enemyLevel);
     m_enemy.setXp(data.enemyXp);
     m_enemy.setXpToNext(data.enemyXpToNext);
+    m_enemy.setWinStreak(data.enemyWinStreak);
+    m_enemy.setLoseStreak(data.enemyLoseStreak);
 
     // 恢复 BattleIndex
     m_battleIndex = data.battleIndex;

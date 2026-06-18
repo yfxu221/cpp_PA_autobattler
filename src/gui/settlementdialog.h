@@ -16,7 +16,8 @@ public:
 private:
     QString resultText(BattleResult result) const;
     QString hpChangeLabel(const QString& side, int before, int after) const;
-    QString goldChangeLabel(const QString& side, int before, int after) const;
+    QString goldChangeLabel(const QString& side, int before, int after, int interest, int streakBonus) const;
+    QString streakStatusLabel(int winStreak, int loseStreak) const;
 };
 
 #endif // GUI_SETTLEMENTDIALOG_H

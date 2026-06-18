@@ -29,6 +29,8 @@ namespace JsonKey {
     constexpr auto kLevel   = "level";
     constexpr auto kXp      = "xp";
     constexpr auto kXpToNext = "xpToNext";
+    constexpr auto kWinStreak  = "winStreak";
+    constexpr auto kLoseStreak = "loseStreak";
 
     // Unit 子字段
     constexpr auto kKey            = "key";
@@ -48,7 +50,8 @@ namespace JsonKey {
 
 
 //  内部辅助：序列化 / 反序列化
-static QJsonObject playerToJson(int gold, int hp, int maxHp, int level, int xp, int xpToNext)
+static QJsonObject playerToJson(int gold, int hp, int maxHp, int level, int xp, int xpToNext,
+                                int winStreak, int loseStreak)
 {
     QJsonObject obj;
     obj[JsonKey::kGold] = gold;
@@ -57,11 +60,14 @@ static QJsonObject playerToJson(int gold, int hp, int maxHp, int level, int xp, 
     obj[JsonKey::kLevel] = level;
     obj[JsonKey::kXp] = xp;
     obj[JsonKey::kXpToNext] = xpToNext;
+    obj[JsonKey::kWinStreak] = winStreak;
+    obj[JsonKey::kLoseStreak] = loseStreak;
     return obj;
 }
 
 static bool playerFromJson(const QJsonObject& obj,
-                           int& gold, int& hp, int& maxHp, int& level, int& xp, int& xpToNext)
+                           int& gold, int& hp, int& maxHp, int& level, int& xp, int& xpToNext,
+                           int& winStreak, int& loseStreak)
 {
     gold = obj[JsonKey::kGold].toInt(20);
     hp = obj[JsonKey::kHp].toInt(100);
@@ -69,6 +75,8 @@ static bool playerFromJson(const QJsonObject& obj,
     level = obj[JsonKey::kLevel].toInt(1);
     xp = obj[JsonKey::kXp].toInt(0);
     xpToNext = obj[JsonKey::kXpToNext].toInt(4);
+    winStreak = obj[JsonKey::kWinStreak].toInt(0);
+    loseStreak = obj[JsonKey::kLoseStreak].toInt(0);
     return true;
 }
 
@@ -140,11 +148,13 @@ static QJsonObject saveDataToJson(const SaveData& data)
 
     root[JsonKey::kPlayer] = playerToJson(
         data.playerGold, data.playerHp, data.playerMaxHp,
-        data.playerLevel, data.playerXp, data.playerXpToNext);
+        data.playerLevel, data.playerXp, data.playerXpToNext,
+        data.playerWinStreak, data.playerLoseStreak);
 
     root[JsonKey::kEnemy] = playerToJson(
         data.enemyGold, data.enemyHp, data.enemyMaxHp,
-        data.enemyLevel, data.enemyXp, data.enemyXpToNext);
+        data.enemyLevel, data.enemyXp, data.enemyXpToNext,
+        data.enemyWinStreak, data.enemyLoseStreak);
 
     QJsonArray unitsArr;
     for (const auto& u : data.units) {
@@ -180,7 +190,8 @@ static std::optional<SaveData> saveDataFromJson(const QJsonObject& root)
         QJsonObject obj = root[JsonKey::kPlayer].toObject();
         playerFromJson(obj,
             data.playerGold, data.playerHp, data.playerMaxHp,
-            data.playerLevel, data.playerXp, data.playerXpToNext);
+            data.playerLevel, data.playerXp, data.playerXpToNext,
+            data.playerWinStreak, data.playerLoseStreak);
     }
 
     // Enemy
@@ -188,7 +199,8 @@ static std::optional<SaveData> saveDataFromJson(const QJsonObject& root)
         QJsonObject obj = root[JsonKey::kEnemy].toObject();
         playerFromJson(obj,
             data.enemyGold, data.enemyHp, data.enemyMaxHp,
-            data.enemyLevel, data.enemyXp, data.enemyXpToNext);
+            data.enemyLevel, data.enemyXp, data.enemyXpToNext,
+            data.enemyWinStreak, data.enemyLoseStreak);
     }
 
     data.battleIndex = root[JsonKey::kBattleIndex].toInt(1);
